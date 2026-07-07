@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">增储宝</string>
+    <string name="tab_home">存单</string>
+    <string name="tab_reports">报表</string>
+    <string name="tab_archive">归档</string>
+    <string name="tab_manage">管理</string>
+</resources>

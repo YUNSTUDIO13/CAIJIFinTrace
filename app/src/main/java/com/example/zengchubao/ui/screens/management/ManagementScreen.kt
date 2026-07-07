@@ -1,0 +1,594 @@
+package com.example.zengchubao.ui.screens.management
+
+import android.content.Intent
+import androidx.activity.compose.BackHandler
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.animation.*
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
+import androidx.compose.foundation.*
+import androidx.compose.foundation.gestures.detectDragGesturesAfterLongPress
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.*
+import androidx.compose.material.icons.outlined.*
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.zIndex
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.IntOffset
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import androidx.compose.ui.zIndex
+import com.example.zengchubao.model.*
+import com.example.zengchubao.storage.LocalFileManager
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import java.io.File
+import java.util.UUID
+import kotlin.math.roundToInt
+
+import com.example.zengchubao.model.PRESET_BANK_COLORS
+
+// ── 管理子页面枚举 ──
+
+enum class ManageSubPage { MAIN, DATA_MGMT, BANK_PRODUCT, DISPLAY_SETTINGS, REMINDER_SETTINGS, DATA_REPORT }
+
+// ── 主管理页面 ──
+
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+fun ManagementScreen(
+    deposits: List<Deposit>,
+    banks: List<Bank>,
+    products: List<Product>,
+    settings: AppSettings,
+    storage: LocalFileManager,
+    onBanksChanged: (List<Bank>) -> Unit,
+    onProductsChanged: (List<Product>) -> Unit,
+    onSettingsChanged: (AppSettings) -> Unit,
+    onDepositsChanged: (List<Deposit>) -> Unit,
+    onArchiveRecordsChanged: (List<ArchiveRecord>) -> Unit
+) {
+    var currentPage by remember { mutableStateOf(ManageSubPage.MAIN) }
+    val scope = rememberCoroutineScope()
+
+    // 系统返回键/滑动手势处理
+    BackHandler(enabled = currentPage != ManageSubPage.MAIN) {
+        currentPage = ManageSubPage.MAIN
+    }
+
+    // 子页面切换动画（SoloChef 风格：淡入淡出 + 轻微水平位移）
+    AnimatedContent(
+        targetState = currentPage,
+        transitionSpec = {
+            val direction = if (targetState.ordinal > initialState.ordinal) 1 else -1
+            (slideInHorizontally { (it * 0.25 * direction).toInt() } + fadeIn(tween(300))) togetherWith
+            (slideOutHorizontally { (-it * 0.25 * direction).toInt() } + fadeOut(tween(300)))
+        },
+        label = "managePageTransition"
+    ) { page ->
+        when (page) {
+            ManageSubPage.MAIN -> ManageMainPage(onNavigate = { currentPage = it })
+            ManageSubPage.DATA_MGMT -> DataMgmtScreen(
+                onBack = { currentPage = ManageSubPage.MAIN },
+                deposits = deposits, storage = storage,
+                onDepositsChanged = onDepositsChanged,
+                onBanksChanged = onBanksChanged,
+                onProductsChanged = onProductsChanged,
+                onArchiveRecordsChanged = onArchiveRecordsChanged,
+                onSettingsChanged = onSettingsChanged)
+            ManageSubPage.BANK_PRODUCT -> BankProductScreen(
+                onBack = { currentPage = ManageSubPage.MAIN },
+                banks = banks, deposits = deposits, products = products, storage = storage,
+                onBanksChanged = onBanksChanged, onProductsChanged = onProductsChanged)
+            ManageSubPage.REMINDER_SETTINGS -> ReminderSettingsScreen(
+                onBack = { currentPage = ManageSubPage.MAIN },
+                settings = settings, onSettingsChanged = onSettingsChanged)
+            ManageSubPage.DATA_REPORT -> DataReportScreen(
+                onBack = { currentPage = ManageSubPage.MAIN },
+                settings = settings, onSettingsChanged = onSettingsChanged)
+            ManageSubPage.DISPLAY_SETTINGS -> ManageMainPage(onNavigate = { currentPage = it })
+        }
+    }
+}
+
+// ═════════════════════════ 一级主页面（4+1模块入口） ═════════════════════════
+
+@Composable
+private fun ManageMainPage(onNavigate: (ManageSubPage) -> Unit) {
+    Column(modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(bottom = 90.dp)) {
+        Text("管理", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = Color(0xFF1E293B),
+            modifier = Modifier.padding(start = 20.dp, end = 20.dp, top = 16.dp, bottom = 12.dp))
+
+        // 模块列表项
+        ModuleItem(icon = Icons.Outlined.CloudUpload, title = "数据管理", subtitle = "导出 / 导入 备份数据",
+            iconBg = Color(0xFFEFF6FF), iconTint = Color(0xFF3B82F6)) { onNavigate(ManageSubPage.DATA_MGMT) }
+        ModuleItem(icon = Icons.Outlined.AccountBalance, title = "银行与产品", subtitle = "配置银行与产品",
+            iconBg = Color(0xFFFEF3C7), iconTint = Color(0xFFD97706)) { onNavigate(ManageSubPage.BANK_PRODUCT) }
+        ModuleItem(icon = Icons.Outlined.Notifications, title = "到期提醒", subtitle = "提前到期提醒天数",
+            iconBg = Color(0xFFFCE7F3), iconTint = Color(0xFFDB2777)) { onNavigate(ManageSubPage.REMINDER_SETTINGS) }
+        ModuleItem(icon = Icons.Outlined.BarChart, title = "数据报表", subtitle = "报表排序与展示开关",
+            iconBg = Color(0xFFF0FDF4), iconTint = Color(0xFF10B981)) { onNavigate(ManageSubPage.DATA_REPORT) }
+
+        Spacer(Modifier.height(40.dp))
+    }
+}
+
+@Composable
+private fun ModuleItem(icon: androidx.compose.ui.graphics.vector.ImageVector, title: String, subtitle: String,
+    iconBg: Color, iconTint: Color, onClick: () -> Unit) {
+    Card(
+        onClick = onClick,
+        modifier = Modifier.padding(horizontal = 16.dp, vertical = 3.dp).fillMaxWidth(),
+        shape = RoundedCornerShape(14.dp),
+        colors = CardDefaults.cardColors(containerColor = Color.White),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.5.dp)
+    ) {
+        Row(modifier = Modifier.padding(14.dp), verticalAlignment = Alignment.CenterVertically) {
+            Box(Modifier.size(38.dp).clip(RoundedCornerShape(10.dp)).background(iconBg),
+                contentAlignment = Alignment.Center) {
+                Icon(icon, null, Modifier.size(19.dp), tint = iconTint)
+            }
+            Spacer(Modifier.width(12.dp))
+            Column(Modifier.weight(1f)) {
+                Text(title, fontSize = 14.sp, fontWeight = FontWeight.W600, color = Color(0xFF1E293B))
+                Text(subtitle, fontSize = 11.sp, color = Color(0xFF94A3B8))
+            }
+            Icon(Icons.Outlined.ChevronRight, null, Modifier.size(16.dp), tint = Color(0xFFCBD5E1))
+        }
+    }
+}
+
+// ═════════════════════════ 二级：数据管理 ═════════════════════════
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun DataMgmtScreen(onBack: () -> Unit,
+    deposits: List<Deposit>, storage: LocalFileManager,
+    onDepositsChanged: (List<Deposit>) -> Unit, onBanksChanged: (List<Bank>) -> Unit,
+    onProductsChanged: (List<Product>) -> Unit, onArchiveRecordsChanged: (List<ArchiveRecord>) -> Unit,
+    onSettingsChanged: (AppSettings) -> Unit) {
+    val context = LocalContext.current
+    val scope = rememberCoroutineScope()
+    var showExportMsg by remember { mutableStateOf<String?>(null) }
+    var showImportMsg by remember { mutableStateOf<String?>(null) }
+
+    val importLauncher = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri ->
+        uri?.let {
+            scope.launch {
+                try {
+                    val input = context.contentResolver.openInputStream(it)
+                    val temp = File(context.cacheDir, "import.zip")
+                    input?.use { i -> temp.outputStream().use { o -> i.copyTo(o) } }
+                    val result = withContext(Dispatchers.IO) { storage.importFromZip(temp, LocalFileManager.ImportMode.OVERWRITE) }
+                    showImportMsg = if (result.success) "导入成功" else result.message
+                    if (result.success) {
+                        onDepositsChanged(storage.getAllDeposits())
+                        onBanksChanged(storage.getAllBanks())
+                        onProductsChanged(storage.getAllProducts())
+                        onArchiveRecordsChanged(storage.getAllArchiveRecords())
+                        onSettingsChanged(storage.getSettings())
+                    }
+                    temp.delete()
+                } catch (e: Exception) { showImportMsg = "导入失败: ${e.message}" }
+            }
+        }
+    }
+
+    Column(modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(bottom = 90.dp)) {
+        SubPageTopBar("数据管理", onBack)
+
+        Card(Modifier.padding(horizontal = 16.dp, vertical = 3.dp).fillMaxWidth(), shape = RoundedCornerShape(14.dp),
+            colors = CardDefaults.cardColors(containerColor = Color.White),
+            elevation = CardDefaults.cardElevation(defaultElevation = 0.5.dp)) {
+            Column {
+                SubListItem(Icons.Outlined.CloudUpload, "数据打包导出", "导出全部存单和配置数据",
+                    Color(0xFFEFF6FF), Color(0xFF3B82F6)) {
+                    scope.launch {
+                        val f = File(context.cacheDir, "zengchubao_${todayString()}.zip")
+                        val ok = withContext(Dispatchers.IO) { storage.exportToZip(f) }
+                        if (ok) {
+                            showExportMsg = "导出成功"
+                            val u = androidx.core.content.FileProvider.getUriForFile(context, "${context.packageName}.fileprovider", f)
+                            context.startActivity(Intent.createChooser(Intent(Intent.ACTION_SEND).apply { type = "application/zip"; putExtra(Intent.EXTRA_STREAM, u); addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION) }, "分享备份"))
+                        } else showExportMsg = "导出失败"
+                    }
+                }
+                HorizontalDivider(color = Color(0xFFF1F5F9))
+                SubListItem(Icons.Outlined.CloudDownload, "数据打包导入", "从备份文件恢复数据",
+                    Color(0xFFECFDF5), Color(0xFF10B981)) { importLauncher.launch("application/zip") }
+            }
+        }
+        showExportMsg?.let { MsgText(it) }
+        showImportMsg?.let { MsgText(it) }
+        Spacer(Modifier.height(30.dp))
+    }
+}
+
+// ═════════════════════════ 二级：银行与产品 ═════════════════════════
+
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun BankProductScreen(onBack: () -> Unit, banks: List<Bank>, deposits: List<Deposit>, products: List<Product>, storage: LocalFileManager,
+    onBanksChanged: (List<Bank>) -> Unit, onProductsChanged: (List<Product>) -> Unit) {
+    val scope = rememberCoroutineScope()
+    var showAddBank by remember { mutableStateOf(false) }
+    var newBankName by remember { mutableStateOf("") }
+    var showDeleteDialog by remember { mutableStateOf(false) }
+    var bankToDelete by remember { mutableStateOf<Bank?>(null) }
+
+    // 已关联存单的银行 ID 集合（不可删除）
+    val banksWithDeposits = deposits.map { it.bankId }.toSet()
+
+    Column(modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(bottom = 90.dp)) {
+        SubPageTopBar("银行与产品", onBack)
+
+        // 银行区域 — 一行一个银行，带颜色管理
+        SectionLabel("已配置银行")
+        Spacer(Modifier.height(6.dp))
+        banks.sortedBy { it.sortOrder }.forEach { bank ->
+            var showColorPicker by remember { mutableStateOf(false) }
+            val bankColor = getBankDisplayColor(bank)
+            val canDelete = !bank.isPreset && bank.id !in banksWithDeposits
+
+            Card(
+                modifier = Modifier.padding(horizontal = 16.dp, vertical = 3.dp).fillMaxWidth(),
+                shape = RoundedCornerShape(12.dp),
+                colors = CardDefaults.cardColors(containerColor = Color.White),
+                elevation = CardDefaults.cardElevation(defaultElevation = 0.5.dp)
+            ) {
+                Column {
+                    Row(
+                        modifier = Modifier.fillMaxWidth().padding(start = 14.dp, end = 6.dp, top = 10.dp, bottom = 10.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(bank.name, fontSize = 14.sp, fontWeight = FontWeight.W500,
+                            color = Color(0xFF1E293B), modifier = Modifier.weight(1f))
+                        Box(
+                            modifier = Modifier
+                                .size(24.dp)
+                                .clip(CircleShape)
+                                .background(bankColor)
+                                .clickable { showColorPicker = !showColorPicker }
+                        )
+                        Spacer(Modifier.width(8.dp))
+                        if (canDelete) {
+                            IconButton(
+                                onClick = { bankToDelete = bank; showDeleteDialog = true },
+                                modifier = Modifier.size(32.dp)
+                            ) {
+                                Icon(Icons.Outlined.Delete, "删除银行",
+                                    modifier = Modifier.size(16.dp),
+                                    tint = Color(0xFF94A3B8))
+                            }
+                        }
+                    }
+                    // 颜色选择器 — 展开/折叠
+                    AnimatedVisibility(
+                        visible = showColorPicker,
+                        enter = expandVertically() + fadeIn(),
+                        exit = shrinkVertically() + fadeOut()
+                    ) {
+                        FlowRow(
+                            modifier = Modifier.padding(start = 14.dp, end = 10.dp, bottom = 10.dp),
+                            horizontalArrangement = Arrangement.spacedBy(10.dp),
+                            verticalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            // 12 色色板（从 index=1 开始，跳过 index=0 的白色占位）
+                            PRESET_BANK_COLORS.drop(1).forEach { color ->
+                                val selected = bankColor == color
+                                Box(
+                                    modifier = Modifier
+                                        .size(28.dp)
+                                        .clip(CircleShape)
+                                        .background(color)
+                                        .then(
+                                            if (selected) Modifier.border(2.5.dp, Color(0xFF1E293B), CircleShape)
+                                            else Modifier.border(1.dp, Color(0xFFE2E8F0), CircleShape)
+                                        )
+                                        .clickable {
+                                            scope.launch {
+                                                val hex = colorToHexString(color)
+                                                withContext(Dispatchers.IO) { storage.updateBankColor(bank.id, hex) }
+                                                onBanksChanged(storage.getAllBanks())
+                                                showColorPicker = false
+                                            }
+                                        }
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        // 添加银行按钮
+        Spacer(Modifier.height(8.dp))
+        OutlinedButton(
+            onClick = { showAddBank = true },
+            modifier = Modifier.padding(horizontal = 16.dp).fillMaxWidth().height(44.dp),
+            shape = RoundedCornerShape(12.dp),
+            colors = ButtonDefaults.outlinedButtonColors(contentColor = Color(0xFF64748B))
+        ) {
+            Icon(Icons.Filled.Add, null, modifier = Modifier.size(18.dp))
+            Spacer(Modifier.width(6.dp))
+            Text("添加银行", fontSize = 14.sp)
+        }
+
+        Spacer(Modifier.height(30.dp))
+    }
+
+    if (showAddBank) {
+        AlertDialog(onDismissRequest = { showAddBank = false },
+            title = { Text("添加银行") },
+            text = { OutlinedTextField(newBankName, { newBankName = it },
+                Modifier.fillMaxWidth(), placeholder = { Text("银行名称") }, singleLine = true) },
+            confirmButton = { TextButton({
+                val name = newBankName.trim()
+                if (name.isNotBlank()) {
+                    scope.launch {
+                        // 新银行默认用下一个未分配的备选颜色
+                        val nextColorIdx = banks.size % (PRESET_BANK_COLORS.size - 1) + 1
+                        val hex = colorToHexString(PRESET_BANK_COLORS[nextColorIdx])
+                        withContext(Dispatchers.IO) {
+                            storage.addBank(Bank("bank_${UUID.randomUUID()}", name, colorHex = hex))
+                        }
+                        onBanksChanged(storage.getAllBanks())
+                    }
+                    newBankName = ""; showAddBank = false
+                }
+            }) { Text("添加") } },
+            dismissButton = { TextButton({ showAddBank = false }) { Text("取消") } })
+    }
+
+    if (showDeleteDialog && bankToDelete != null) {
+        AlertDialog(onDismissRequest = { showDeleteDialog = false },
+            title = { Text("删除银行") },
+            text = { Text("确定要删除「${bankToDelete!!.name}」吗？\n删除后不可恢复。") },
+            confirmButton = {
+                TextButton({
+                    scope.launch {
+                        withContext(Dispatchers.IO) { storage.deleteBank(bankToDelete!!.id) }
+                        onBanksChanged(storage.getAllBanks())
+                        showDeleteDialog = false; bankToDelete = null
+                    }
+                }) { Text("删除", color = Color(0xFFEF4444)) }
+            },
+            dismissButton = { TextButton({ showDeleteDialog = false }) { Text("取消") } })
+    }
+}
+
+private fun getBankDisplayColor(bank: Bank): Color {
+    if (bank.colorHex.isNotEmpty()) {
+        return try { Color(android.graphics.Color.parseColor(bank.colorHex)) }
+            catch (_: Exception) { PRESET_BANK_COLORS[0] }
+    }
+    // 预置银行按默认色板
+    return when (bank.id) {
+        "bank_icbc" -> PRESET_BANK_COLORS[1]
+        "bank_abc" -> PRESET_BANK_COLORS[4]
+        "bank_boc" -> PRESET_BANK_COLORS[3]
+        "bank_ccb" -> PRESET_BANK_COLORS[9]
+        "bank_bcm" -> PRESET_BANK_COLORS[10]
+        "bank_psbc" -> PRESET_BANK_COLORS[6]
+        "bank_cmb" -> PRESET_BANK_COLORS[5]
+        else -> PRESET_BANK_COLORS[0]
+    }
+}
+
+private fun colorToHexString(color: Color): String {
+    val alpha = (color.alpha * 255).toInt()
+    val red = (color.red * 255).toInt()
+    val green = (color.green * 255).toInt()
+    val blue = (color.blue * 255).toInt()
+    return String.format("#%02X%02X%02X%02X", alpha, red, green, blue)
+}
+
+// ═════════════════════════ 二级：到期提醒 ═════════════════════════
+
+@Composable
+private fun ReminderSettingsScreen(onBack: () -> Unit, settings: AppSettings, onSettingsChanged: (AppSettings) -> Unit) {
+    Column(modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(bottom = 90.dp)) {
+        SubPageTopBar("到期提醒", onBack)
+
+        Card(Modifier.padding(horizontal = 16.dp, vertical = 3.dp).fillMaxWidth(),
+            shape = RoundedCornerShape(14.dp),
+            colors = CardDefaults.cardColors(containerColor = Color.White),
+            elevation = CardDefaults.cardElevation(defaultElevation = 0.5.dp)) {
+            Row(Modifier.fillMaxWidth().padding(14.dp), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                Column(Modifier.weight(1f)) {
+                    Text("提前提醒天数", fontSize = 13.sp, fontWeight = FontWeight.W600, color = Color(0xFF1E293B))
+                    Text("到期前发送提醒", fontSize = 10.sp, color = Color(0xFF94A3B8))
+                }
+                Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                    listOf(7, 14, 30).forEach { d ->
+                        FilterChip(selected = settings.reminderDays == d,
+                            onClick = { onSettingsChanged(settings.copy(reminderDays = d)) },
+                            label = { Text("${d}天", fontSize = 11.sp, fontWeight = FontWeight.W600) },
+                            shape = RoundedCornerShape(12.dp),
+                            colors = FilterChipDefaults.filterChipColors(
+                                selectedContainerColor = Color(0xFF2563EB), selectedLabelColor = Color.White,
+                                containerColor = Color(0xFFF1F5F9), labelColor = Color(0xFF64748B)))
+                    }
+                }
+            }
+        }
+        Spacer(Modifier.height(30.dp))
+    }
+}
+
+// ═════════════════════════ 二级：数据报表（排序+开关） ═════════════════════════
+
+@Composable
+private fun DataReportScreen(onBack: () -> Unit, settings: AppSettings, onSettingsChanged: (AppSettings) -> Unit) {
+    var items by remember(settings.reportItems) { mutableStateOf(settings.reportItems) }
+
+    Column(modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(bottom = 90.dp)) {
+        SubPageTopBar("数据报表", onBack)
+
+        Text("拖拽右侧手柄可调整顺序，开关控制是否展示",
+            fontSize = 11.sp, color = Color(0xFF94A3B8), modifier = Modifier.padding(start = 16.dp, end = 16.dp, bottom = 8.dp))
+
+        items.forEachIndexed { index, item ->
+            ReportSortItem(
+                item = item,
+                onToggle = { enabled ->
+                    items = items.toMutableList().apply { this[index] = item.copy(enabled = enabled) }
+                    onSettingsChanged(settings.copy(reportItems = items))
+                },
+                onReorder = { fromIndex, toIndex ->
+                    if (fromIndex != toIndex) {
+                        items = items.toMutableList().apply {
+                            val removed = removeAt(fromIndex)
+                            add(toIndex.coerceIn(0, size), removed)
+                        }
+                        onSettingsChanged(settings.copy(reportItems = items))
+                    }
+                },
+                index = index,
+                totalCount = items.size
+            )
+        }
+
+        Spacer(Modifier.height(30.dp))
+    }
+}
+
+@Composable
+private fun ReportSortItem(
+    item: ReportItemSetting,
+    index: Int,
+    totalCount: Int,
+    onToggle: (Boolean) -> Unit,
+    onReorder: (Int, Int) -> Unit
+) {
+    val itemHeight = 56.dp
+    val itemHeightPx = with(LocalDensity.current) { itemHeight.toPx() }
+    var offsetY by remember { mutableFloatStateOf(0f) }
+    var isDragging by remember { mutableStateOf(false) }
+
+    val elevation by animateFloatAsState(
+        targetValue = if (isDragging) 8f else 0.5f,
+        label = "cardElevation"
+    )
+
+    Card(
+        modifier = Modifier
+            .padding(horizontal = 16.dp, vertical = 2.dp)
+            .fillMaxWidth()
+            .offset { IntOffset(0, offsetY.roundToInt()) }
+            .zIndex(if (isDragging) 1f else 0f),
+        shape = RoundedCornerShape(12.dp),
+        colors = CardDefaults.cardColors(containerColor = Color.White),
+        elevation = CardDefaults.cardElevation(defaultElevation = elevation.dp)
+    ) {
+        Row(
+            modifier = Modifier
+                .padding(start = 12.dp, end = 10.dp, top = 10.dp, bottom = 10.dp)
+                .fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            // 拖拽手柄（三条横线）
+            Column(
+                modifier = Modifier
+                    .padding(end = 12.dp)
+                    .pointerInput(Unit) {
+                        detectDragGesturesAfterLongPress(
+                            onDragStart = { isDragging = true },
+                            onDrag = { change, dragAmount ->
+                                change.consume()
+                                offsetY += dragAmount.y
+                            },
+                            onDragEnd = {
+                                isDragging = false
+                                val move = (offsetY / itemHeightPx).roundToInt()
+                                val newIndex = (index + move).coerceIn(0, totalCount - 1)
+                                onReorder(index, newIndex)
+                                offsetY = 0f
+                            },
+                            onDragCancel = {
+                                isDragging = false
+                                offsetY = 0f
+                            }
+                        )
+                    },
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                Box(Modifier.size(18.dp, 2.dp).clip(RoundedCornerShape(1.dp)).background(Color(0xFFD1D5DB)))
+                Spacer(Modifier.height(3.dp))
+                Box(Modifier.size(14.dp, 2.dp).clip(RoundedCornerShape(1.dp)).background(Color(0xFFD1D5DB)))
+                Spacer(Modifier.height(3.dp))
+                Box(Modifier.size(18.dp, 2.dp).clip(RoundedCornerShape(1.dp)).background(Color(0xFFD1D5DB)))
+            }
+
+            Text(item.title, fontSize = 13.sp, fontWeight = FontWeight.W500,
+                color = if (item.enabled) Color(0xFF1E293B) else Color(0xFF94A3B8),
+                modifier = Modifier.weight(1f))
+
+            // 开关
+            Box(Modifier.width(44.dp).height(24.dp).clip(RoundedCornerShape(999.dp))
+                .background(if (item.enabled) Color(0xFF3B82F6) else Color(0xFFE2E8F0))
+                .clickable { onToggle(!item.enabled) }) {
+                Box(Modifier.offset(x = if (item.enabled) 20.dp else 3.dp, y = 3.dp).size(18.dp)
+                    .clip(RoundedCornerShape(999.dp)).background(Color.White).shadow(1.dp, RoundedCornerShape(999.dp)))
+            }
+        }
+    }
+}
+
+// ═════════════════════════ 通用组件 ═════════════════════════
+
+@Composable
+private fun SubPageTopBar(title: String, onBack: () -> Unit) {
+    Row(verticalAlignment = Alignment.CenterVertically,
+        modifier = Modifier.fillMaxWidth().padding(start = 16.dp, end = 12.dp, top = 14.dp, bottom = 8.dp)) {
+        IconButton(onClick = onBack, modifier = Modifier.size(32.dp)) {
+            Icon(Icons.AutoMirrored.Filled.ArrowBack, "返回", tint = Color(0xFF1E293B), modifier = Modifier.size(20.dp))
+        }
+        Spacer(Modifier.width(8.dp))
+        Text(title, fontSize = 17.sp, fontWeight = FontWeight.Bold, color = Color(0xFF1E293B))
+    }
+}
+
+@Composable
+private fun SubListItem(icon: androidx.compose.ui.graphics.vector.ImageVector, title: String, desc: String,
+    bg: Color, tint: Color, onClick: () -> Unit) {
+    Row(modifier = Modifier.fillMaxWidth().clickable { onClick() }.padding(14.dp),
+        verticalAlignment = Alignment.CenterVertically) {
+        Box(Modifier.size(34.dp).clip(RoundedCornerShape(10.dp)).background(bg),
+            contentAlignment = Alignment.Center) {
+            Icon(icon, null, Modifier.size(16.dp), tint = tint)
+        }
+        Spacer(Modifier.width(12.dp))
+        Column(Modifier.weight(1f)) {
+            Text(title, fontSize = 13.sp, fontWeight = FontWeight.W600, color = Color(0xFF1E293B))
+            Text(desc, fontSize = 10.sp, color = Color(0xFF94A3B8))
+        }
+    }
+}
+
+@Composable
+private fun MsgText(msg: String) {
+    Text(msg, Modifier.padding(horizontal = 16.dp, vertical = 3.dp), fontSize = 11.sp,
+        color = if (msg.contains("成功")) Color(0xFF10B981) else Color(0xFFEF4444))
+}
+
+@Composable
+private fun SectionLabel(text: String) {
+    Text(text, Modifier.padding(horizontal = 16.dp), fontSize = 9.sp, fontWeight = FontWeight.W600,
+        color = Color(0xFF94A3B8), letterSpacing = 2.sp)
+}
