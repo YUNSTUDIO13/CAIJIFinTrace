@@ -156,17 +156,17 @@ private fun AssetOverviewSection(
         Column(Modifier.padding(12.dp)) {
             Text("资产收益", fontSize = 14.sp, fontWeight = FontWeight.Bold, color = Color(0xFF334155))
             Spacer(Modifier.height(10.dp))
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(1.dp)) {
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(3.dp)) {
                 AssetField("持有本金", fmt(totalDeposited), Modifier.weight(1f))
                 AssetField("资产余额", fmt(assetBalance), Modifier.weight(1f))
             }
             Spacer(Modifier.height(3.dp))
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(1.dp)) {
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(3.dp)) {
                 AssetField("日收益率", "¥$rateText", Modifier.weight(1f))
                 AssetField("预期年度收益", fmt(annualExpected), Modifier.weight(1f))
             }
             Spacer(Modifier.height(3.dp))
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(1.dp)) {
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(3.dp)) {
                 AssetField("到期总收益", fmt(totalYield), Modifier.weight(1f))
                 AssetField("综合年化率", "${"%.2f".format(weightedRate)}%", Modifier.weight(1f))
             }
@@ -211,7 +211,7 @@ private fun BankDistributionSection(
     }
 }
 
-// ── 资产分类明细表 ──
+// ── 资产分类明细表（1:1 复刻参考图） ──
 
 @Composable
 private fun AssetCategorySection(
@@ -219,31 +219,57 @@ private fun AssetCategorySection(
     totalBalance: Double,
     bankColorMap: Map<String, Color>
 ) {
-    SectionCard("资产分类明细") {
-        Row(Modifier.fillMaxWidth().padding(bottom = 8.dp)) {
-            Text("类型", Modifier.weight(1f), fontSize = 10.sp, fontWeight = FontWeight.W600, color = Color(0xFF94A3B8), textAlign = TextAlign.Center)
-            Text("余额", Modifier.weight(1f), fontSize = 10.sp, fontWeight = FontWeight.W600, color = Color(0xFF94A3B8), textAlign = TextAlign.Center)
-            Text("占比", Modifier.weight(0.8f), fontSize = 10.sp, fontWeight = FontWeight.W600, color = Color(0xFF94A3B8), textAlign = TextAlign.Center)
-            Text("笔数", Modifier.weight(0.6f), fontSize = 10.sp, fontWeight = FontWeight.W600, color = Color(0xFF94A3B8), textAlign = TextAlign.Center)
-        }
-        HorizontalDivider(color = Color(0xFFF8FAFC))
-        bankGroups.forEachIndexed { i, (bank, bal, deps) ->
-            val pct = if (totalBalance > 0) (bal / totalBalance * 100) else 0.0
-            Row(
-                Modifier.fillMaxWidth().padding(vertical = 10.dp),
-                verticalAlignment = Alignment.CenterVertically
+    Card(
+        modifier = Modifier.padding(horizontal = 20.dp).fillMaxWidth(),
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(containerColor = Color.White),
+        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
+    ) {
+        Column(Modifier.fillMaxWidth().padding(16.dp)) {
+            Text("资产分类明细", fontSize = 14.sp, fontWeight = FontWeight.Bold, color = Color(0xFF334155))
+            Spacer(Modifier.height(8.dp))
+
+            // 内层灰色圆角卡片（2层结构：白卡→灰卡）
+            Column(
+                Modifier
+                    .fillMaxWidth()
+                    .background(Color(0xFFF8FAFC), RoundedCornerShape(12.dp))
             ) {
-                Row(Modifier.weight(1f), verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.Center) {
-                    Box(Modifier.size(8.dp).background(bankColorMap[bank] ?: Color(0xFFCBD5E1), CircleShape))
-                    Spacer(Modifier.width(6.dp))
-                    Text(bank, fontSize = 11.sp, color = Color(0xFF475569))
+                // 表头（浅灰色背景）
+                Row(
+                    Modifier
+                        .fillMaxWidth()
+                        .background(Color(0xFFF1F5F9), RoundedCornerShape(topStart = 12.dp, topEnd = 12.dp))
+                        .padding(horizontal = 8.dp, vertical = 10.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text("类型", Modifier.weight(1.2f), fontSize = 9.sp, fontWeight = FontWeight.W600, color = Color(0xFF475569), textAlign = TextAlign.Center)
+                    Text("余额", Modifier.weight(1f), fontSize = 9.sp, fontWeight = FontWeight.W600, color = Color(0xFF475569), textAlign = TextAlign.Center)
+                    Text("占比", Modifier.weight(0.8f), fontSize = 9.sp, fontWeight = FontWeight.W600, color = Color(0xFF475569), textAlign = TextAlign.Center)
+                    Text("笔数", Modifier.weight(0.6f), fontSize = 9.sp, fontWeight = FontWeight.W600, color = Color(0xFF475569), textAlign = TextAlign.Center)
                 }
-                Text(fmt(bal), Modifier.weight(1f), fontSize = 11.sp, fontWeight = FontWeight.W600, color = Color(0xFF334155), textAlign = TextAlign.Center)
-                Text("${"%.1f".format(pct)}%", Modifier.weight(0.8f), fontSize = 11.sp, color = Color(0xFF94A3B8), textAlign = TextAlign.Center)
-                Text("${deps.size}笔", Modifier.weight(0.6f), fontSize = 11.sp, color = Color(0xFF94A3B8), textAlign = TextAlign.Center)
+
+                // 数据行（浅浅灰色：内卡片底色，仅用分割线分隔）
+                Column(Modifier.padding(horizontal = 8.dp)) {
+                    bankGroups.forEachIndexed { i, (bank, bal, deps) ->
+                        val pct = if (totalBalance > 0) (bal / totalBalance * 100) else 0.0
+                        Row(
+                            Modifier
+                                .fillMaxWidth()
+                                .padding(vertical = 10.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(bank, Modifier.weight(1.2f), fontSize = 11.sp, color = Color(0xFF1E293B), textAlign = TextAlign.Center)
+                            Text(fmt(bal), Modifier.weight(1f), fontSize = 11.sp, fontWeight = FontWeight.W600, color = Color(0xFF1E293B), textAlign = TextAlign.Center)
+                            Text("${"%.1f".format(pct)}%", Modifier.weight(0.8f), fontSize = 11.sp, color = Color(0xFF475569), textAlign = TextAlign.Center)
+                            Text("${deps.size}笔", Modifier.weight(0.6f), fontSize = 11.sp, color = Color(0xFF475569), textAlign = TextAlign.Center)
+                        }
+                        if (i < bankGroups.size - 1) {
+                            HorizontalDivider(color = Color(0xFFEEF2F6), thickness = 1.dp)
+                        }
+                    }
+                }
             }
-            if (i < bankGroups.size - 1) HorizontalDivider(color = Color(0xFFF8FAFC))
         }
     }
 }
@@ -256,7 +282,7 @@ private fun AssetField(label: String, value: String, modifier: Modifier = Modifi
         shape = RoundedCornerShape(10.dp),
         color = Color(0xFFF8FAFC)
     ) {
-        Column(Modifier.padding(3.dp)) {
+        Column(Modifier.padding(5.dp)) {
             Text(label, fontSize = 9.sp, fontWeight = FontWeight.W500, color = Color(0xFF94A3B8), lineHeight = 10.sp)
             Text(value, fontSize = 12.sp, fontWeight = FontWeight.Bold, color = Color(0xFF1E293B), lineHeight = 14.sp)
         }

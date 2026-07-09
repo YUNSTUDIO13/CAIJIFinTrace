@@ -26,6 +26,8 @@ import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.res.painterResource
+import com.example.zengchubao.R
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.Lifecycle
@@ -249,7 +251,7 @@ fun PillChip(label: String, selected: Boolean, onClick: () -> Unit) {
 @Composable
 private fun StatMiniCard(title: String, value: String, selected: Boolean = false,
     textColor: Color = Color(0xFF0E1B4D), modifier: Modifier = Modifier, onClick: (() -> Unit)? = null) {
-    val borderColor = if (selected) Color(0xFF2563EB) else Color.Transparent
+    val borderColor = if (selected) Color(0xFF1E293B) else Color.Transparent
     Card(modifier = modifier, shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(containerColor = Color.White),
         border = BorderStroke(1.dp, if (borderColor != Color.Transparent) borderColor else Color(0x120E1B4D)),
@@ -259,6 +261,7 @@ private fun StatMiniCard(title: String, value: String, selected: Boolean = false
             horizontalAlignment = Alignment.CenterHorizontally) {
             Text(value, fontSize = 22.sp, fontWeight = FontWeight.ExtraBold, color = textColor, lineHeight = 22.sp)
             Text(title, fontSize = 9.sp, fontWeight = FontWeight.W500, color = Color(0xFF9499B8), lineHeight = 9.sp)
+            Spacer(Modifier.height(2.dp))
         }
     }
 }
@@ -276,7 +279,10 @@ fun RefDepositCard(deposit: Deposit, onClick: () -> Unit, modifier: Modifier = M
         isExpiringSoon -> Color(0xFFF59E0B)
         else -> Color(0xFF94A3B8)
     }
-    val rateColor = rateColorFor(deposit.annualRate)
+    val interestAmount = if (deposit.status == DepositStatus.MATURED)
+        deposit.maturityAmount - deposit.principal
+    else
+        calculateMaturityInterest(deposit.principal, deposit.annualRate, deposit.termDays)
 
     Card(onClick = onClick, modifier = modifier.fillMaxWidth(),
         shape = RoundedCornerShape(16.dp),
@@ -285,52 +291,55 @@ fun RefDepositCard(deposit: Deposit, onClick: () -> Unit, modifier: Modifier = M
 
         Column(Modifier.fillMaxWidth().padding(start = 10.dp, end = 10.dp, top = 8.dp, bottom = 8.dp)) {
 
-            // ══ 图标 + 产品名/本金（同一行）+ 银行/日期 ══
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                BankFirstCharIcon(deposit.bankName)
-                Spacer(Modifier.width(10.dp))
-                Column(modifier = Modifier.weight(1f)) {
-                    // L1: 产品名 + Badge + 本金（同一水平线）
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Row(verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(5.dp)) {
-                            Text(deposit.productName, fontSize = 13.sp, fontWeight = FontWeight.W600,
-                                color = Color(0xFF1E293B), maxLines = 1, overflow = TextOverflow.Ellipsis,
-                                modifier = Modifier.weight(1f, fill = false))
-                            if (isExpiringSoon) {
-                                MiniBadge("即将到期", bg = Color(0xFFFEF3C7), fg = Color(0xFFD97706))
-                            }
-                        }
-                        Spacer(Modifier.width(6.dp))
-                        Text(CN_INT.format(deposit.principal), fontSize = 14.sp,
-                            fontWeight = FontWeight.Bold, color = Color(0xFF1E293B))
-                    }
-                    // L2: 银行名称 | 日期范围（右对齐）
-                    Row(modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween) {
-                        Text(deposit.bankName, fontSize = 10.sp, color = Color(0xFF94A3B8))
-                        Text("${deposit.startDate} ～ ${deposit.endDate}", fontSize = 10.sp, color = Color(0xFF94A3B8))
-                    }
-                }
-            }
-
-            // ══ 利率图标 + 利率 + 到期日 + 倒计时 ══
+            // ══ L1: 产品名 + Badge | ¥本金 ══
             Row(
-                modifier = Modifier.fillMaxWidth().padding(top = 5.dp),
+                modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Row(verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                    RateIcon(rate = deposit.annualRate, modifier = Modifier.size(18.dp))
-                    Text("${"%.2f".format(deposit.annualRate)}%", fontSize = 14.sp,
-                        fontWeight = FontWeight.W600, color = rateColor)
-                    Text("年化利率", fontSize = 10.sp, color = Color(0xFF94A3B8))
+                    horizontalArrangement = Arrangement.spacedBy(5.dp)) {
+                    Text(deposit.productName, fontSize = 13.sp, fontWeight = FontWeight.W600,
+                        color = Color(0xFF1E293B), maxLines = 1, overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier.weight(1f, fill = false))
+                    if (isExpiringSoon) {
+                        MiniBadge("即将到期", bg = Color(0xFFFEF3C7), fg = Color(0xFFD97706))
+                    }
                 }
+                Spacer(Modifier.width(6.dp))
+                Text("¥${CN_INT.format(deposit.principal)}", fontSize = 14.sp,
+                    fontWeight = FontWeight.Bold, color = Color(0xFF1E293B))
+            }
+
+            // ══ L2: 银行名称 · 利率图标 利率 | 到期利息 ══
+            Row(
+                modifier = Modifier.fillMaxWidth().padding(top = 3.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                    Text(deposit.bankName, fontSize = 10.sp, color = Color(0xFF1E293B))
+                    Text(" · ", fontSize = 10.sp, color = Color(0xFF94A3B8))
+                    RateIcon(rate = deposit.annualRate, modifier = Modifier.size(10.dp), color = Color(0xFF1E293B))
+                    Text("${"%.2f".format(deposit.annualRate)}%", fontSize = 10.sp,
+                        fontWeight = FontWeight.W600, color = Color(0xFF1E293B))
+                }
+                Row(verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(3.dp)) {
+                    WalletIcon(modifier = Modifier.size(10.dp), tint = Color(0xFF1E293B))
+                    Text(CN_INT.format(interestAmount), fontSize = 10.sp,
+                        fontWeight = FontWeight.Bold, color = Color(0xFF1E293B))
+                }
+            }
+
+            // ══ L3: 起止日期（左） | xx天后到期（右） ══
+            Row(
+                modifier = Modifier.fillMaxWidth().padding(top = 3.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text("${deposit.startDate} ～ ${deposit.endDate}", fontSize = 10.sp, color = Color(0xFF94A3B8))
                 val countdownText = when {
                     isExpired -> "已过期${-remainingDays}天"
                     isExpiringSoon -> "${remainingDays}天后到期"
@@ -370,11 +379,22 @@ private fun MiniBadge(text: String, bg: Color, fg: Color) {
     }
 }
 
+// ── 钱包图标（wallet_2_line） ──
+
+@Composable
+private fun WalletIcon(modifier: Modifier = Modifier, tint: Color = Color(0xFF1E293B)) {
+    Icon(
+        painter = painterResource(id = R.drawable.ic_wallet),
+        contentDescription = "到期利息",
+        modifier = modifier,
+        tint = tint
+    )
+}
+
 // ── 动态利率图标 ──
 
 @Composable
-private fun RateIcon(rate: Double, modifier: Modifier = Modifier) {
-    val color = rateColorFor(rate)
+private fun RateIcon(rate: Double, modifier: Modifier = Modifier, color: Color = rateColorFor(rate)) {
     val sweep = ((rate / 5.0).coerceIn(0.0, 1.0) * 360).toFloat()
     Canvas(modifier = modifier) {
         val strokeWidth = 3.dp.toPx()

@@ -14,6 +14,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.zengchubao.model.*
@@ -150,7 +151,9 @@ fun ArchiveScreen(
                                 Text("产品明细", fontSize = 9.sp, fontWeight = FontWeight.W600,
                                     color = Color(0xFF94A3B8), letterSpacing = 1.sp)
                                 Spacer(Modifier.height(8.dp))
-                                deps.forEach { dep ->
+                                deps.sortedByDescending { it.maturityAmount - it.principal }.forEach { dep ->
+                                    val yieldAmount = dep.maturityAmount - dep.principal
+                                    val periodText = "${dep.startDate.take(7).replace("-", "/")}～${dep.endDate.take(7).replace("-", "/")}"
                                     Row(
                                         modifier = Modifier
                                             .fillMaxWidth()
@@ -160,14 +163,22 @@ fun ArchiveScreen(
                                         horizontalArrangement = Arrangement.SpaceBetween,
                                         verticalAlignment = Alignment.CenterVertically
                                     ) {
-                                        Text(dep.productName, fontSize = 12.sp, color = Color(0xFF334155),
-                                            fontWeight = FontWeight.W500, modifier = Modifier.weight(1f))
+                                        Row(
+                                            modifier = Modifier.weight(1f),
+                                            verticalAlignment = Alignment.CenterVertically,
+                                            horizontalArrangement = Arrangement.spacedBy(6.dp)
+                                        ) {
+                                            Text(dep.productName, fontSize = 12.sp, color = Color(0xFF334155),
+                                                fontWeight = FontWeight.W500, maxLines = 1, overflow = TextOverflow.Ellipsis,
+                                                modifier = Modifier.weight(1f, fill = false))
+                                            Text(periodText, fontSize = 10.sp, color = Color(0xFF94A3B8))
+                                        }
                                         Row(
                                             verticalAlignment = Alignment.CenterVertically,
                                             horizontalArrangement = Arrangement.End
                                         ) {
                                             Text(
-                                                "+${CN_INT.format(dep.maturityAmount - dep.principal)}",
+                                                "+${CN_INT.format(yieldAmount)}",
                                                 fontSize = 12.sp, fontWeight = FontWeight.W600, color = Color(0xFF2563EB)
                                             )
                                             Spacer(Modifier.width(2.dp))
