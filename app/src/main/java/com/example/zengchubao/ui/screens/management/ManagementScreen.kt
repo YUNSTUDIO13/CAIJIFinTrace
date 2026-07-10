@@ -45,7 +45,7 @@ import com.example.zengchubao.model.PRESET_BANK_COLORS
 
 // ── 管理子页面枚举 ──
 
-enum class ManageSubPage { MAIN, DATA_MGMT, BANK_PRODUCT, DISPLAY_SETTINGS, REMINDER_SETTINGS, DATA_REPORT }
+enum class ManageSubPage { MAIN, DATA_MGMT, BANK_PRODUCT, DISPLAY_SETTINGS, REMINDER_SETTINGS, DATA_REPORT, FORMULA_CALC }
 
 // ── 主管理页面 ──
 
@@ -102,6 +102,7 @@ fun ManagementScreen(
                 onBack = { currentPage = ManageSubPage.MAIN },
                 settings = settings, onSettingsChanged = onSettingsChanged)
             ManageSubPage.DISPLAY_SETTINGS -> ManageMainPage(onNavigate = { currentPage = it })
+            ManageSubPage.FORMULA_CALC -> FormulaCalcScreen(onBack = { currentPage = ManageSubPage.MAIN })
         }
     }
 }
@@ -123,6 +124,8 @@ private fun ManageMainPage(onNavigate: (ManageSubPage) -> Unit) {
             iconBg = Color(0xFFFCE7F3), iconTint = Color(0xFFDB2777)) { onNavigate(ManageSubPage.REMINDER_SETTINGS) }
         ModuleItem(icon = Icons.Outlined.BarChart, title = "数据报表", subtitle = "报表排序与展示开关",
             iconBg = Color(0xFFF0FDF4), iconTint = Color(0xFF10B981)) { onNavigate(ManageSubPage.DATA_REPORT) }
+        ModuleItem(icon = Icons.Outlined.Calculate, title = "公式计算", subtitle = "查看全部指标计算公式",
+            iconBg = Color(0xFFFAF5FF), iconTint = Color(0xFF8B5CF6)) { onNavigate(ManageSubPage.FORMULA_CALC) }
 
         Spacer(Modifier.height(40.dp))
     }
@@ -546,6 +549,79 @@ private fun ReportSortItem(
                 Box(Modifier.offset(x = if (item.enabled) 20.dp else 3.dp, y = 3.dp).size(18.dp)
                     .clip(RoundedCornerShape(999.dp)).background(Color.White).shadow(1.dp, RoundedCornerShape(999.dp)))
             }
+        }
+    }
+}
+
+// ═════════════════════════ 二级：公式计算 ═════════════════════════
+
+@Composable
+private fun FormulaCalcScreen(onBack: () -> Unit) {
+    Column(modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(bottom = 90.dp)) {
+        SubPageTopBar("公式计算", onBack)
+
+        FormulaCard(
+            title = "日收益",
+            formula = "Σ(本金 × 年利率% ÷ 360)",
+            desc = "所有持有中存单每天固定产生的利息之和。\n日利率 = 年利率% ÷ 360（银行业日利率换算标准）"
+        )
+        FormulaCard(
+            title = "持有中累计收益",
+            formula = "Σ(本金 × 年利率% ÷ 360 × 已持有天数)",
+            desc = "从起存日起至今天，每笔持有中存单已产生的收益总和。\n已持有天数 = 今天 - 起存日，上限不超过存期天数"
+        )
+        FormulaCard(
+            title = "资产余额",
+            formula = "Σ(HOLDING本金 + 持有中累计收益)",
+            desc = "仅统计HOLDING存单。已到期=已归档=不计入。\n反映当前在仓资产的实际价值"
+        )
+        FormulaCard(
+            title = "今年预估收益",
+            formula = "Σ(本金 × 年利率% ÷ 365 × 单笔今年有效天数)",
+            desc = "今年有效天数 = min(12-31, 到期日) - max(1-1, 起存日)\n前年存的→从1月1日起算；今年新存→从起存日次日起算\n对年对月法÷365 · 实际天数法÷360"
+        )
+        FormulaCard(
+            title = "到期总收益",
+            formula = "Σ(本金 × 年利率% ÷ 360 × 存期天数)",
+            desc = "HOLDING存单到期时预计产生的总利息。\n对年对月法下整年化简为 本金 × 年利率% × 年数"
+        )
+        FormulaCard(
+            title = "综合年化率（时间加权）",
+            formula = "Σ(本金 × 年利率 × 存期天数) ÷ Σ(本金 × 存期天数)",
+            desc = "按本金×存期加权平均的年化利率。\n仅统计HOLDING存单，3年期4%权重是1年期4%的3倍"
+        )
+        FormulaCard(
+            title = "累计收益（全量）",
+            formula = "持有中 → 持有中累计收益\n已到期/已归档/提前支取 → maturityAmount - 本金",
+            desc = "包含已结算的历史收益 + 当前持仓累计收益。\n非仅持有中，全生命周期统计"
+        )
+        FormulaCard(
+            title = "累计存入",
+            formula = "Σ(本金)",
+            desc = "所有存单（含已到期、已归档）的本金总和。\n反映历史总投入规模"
+        )
+
+        Spacer(Modifier.height(40.dp))
+    }
+}
+
+@Composable
+private fun FormulaCard(title: String, formula: String, desc: String) {
+    Card(
+        modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp).fillMaxWidth(),
+        shape = RoundedCornerShape(14.dp),
+        colors = CardDefaults.cardColors(containerColor = Color.White),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.5.dp)
+    ) {
+        Column(Modifier.padding(16.dp)) {
+            Text(title, fontSize = 15.sp, fontWeight = FontWeight.Bold, color = Color(0xFF1E293B))
+            Spacer(Modifier.height(8.dp))
+            Text(formula, fontSize = 13.sp, fontWeight = FontWeight.W600, color = Color(0xFF8B5CF6),
+                lineHeight = 20.sp)
+            Spacer(Modifier.height(8.dp))
+            HorizontalDivider(color = Color(0xFFF1F5F9), thickness = 1.dp)
+            Spacer(Modifier.height(8.dp))
+            Text(desc, fontSize = 11.sp, color = Color(0xFF64748B), lineHeight = 17.sp)
         }
     }
 }

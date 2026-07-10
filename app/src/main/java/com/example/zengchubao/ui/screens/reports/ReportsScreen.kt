@@ -23,8 +23,10 @@ import com.example.zengchubao.model.*
 import java.text.NumberFormat
 import java.util.Locale
 
-private val CN = NumberFormat.getNumberInstance(Locale.CHINA).apply { minimumFractionDigits = 0; maximumFractionDigits = 0 }
+private val CN = NumberFormat.getNumberInstance(Locale.CHINA).apply { minimumFractionDigits = 2; maximumFractionDigits = 2 }
+private val CN_I = NumberFormat.getNumberInstance(Locale.CHINA).apply { minimumFractionDigits = 0; maximumFractionDigits = 0 }
 private fun fmt(v: Double) = "¥${CN.format(v)}"
+private fun fmtI(v: Double) = "¥${CN_I.format(v)}"
 
 private val FALLBACK_BANK_COLORS = listOf(
     Color(0xFF3B82F6), Color(0xFF10B981), Color(0xFFF59E0B), Color(0xFF8B5CF6),
@@ -66,7 +68,11 @@ private fun parseColor(hex: String): Color {
 fun ReportsScreen(
     deposits: List<Deposit>,
     banks: List<Bank>,
-    settings: AppSettings = AppSettings()
+    settings: AppSettings = AppSettings(),
+    onDailyDetail: () -> Unit = {},
+    onAnnualDetail: () -> Unit = {},
+    onMaturityDetail: () -> Unit = {},
+    onAccumulatedDetail: () -> Unit = {}
 ) {
     val holding = remember(deposits) { deposits.filter { it.status == DepositStatus.HOLDING } }
     val assetBalance = remember(holding) { calculateAssetBalance(holding) }
@@ -74,15 +80,28 @@ fun ReportsScreen(
     val totalDeposited = remember(holding) { holding.sumOf { it.principal } }
     val annualExpected = remember(holding) { calculateAnnualExpectedYield(holding) }
     val weightedRate = remember(holding) { calculateWeightedRate(holding) }
-    val dailyRate = remember(annualExpected) {
-        val rate = annualExpected / 365.0
-        "%.2f".format(kotlin.math.round(rate * 100) / 100)  // 四舍五入保留2位小数
+    val dailyRate = remember(holding) {
+        val today = todayString()
+        val daily = holding
+            .filter { it.startDate <= today }
+            .sumOf { it.principal * (it.annualRate / 100.0) / yearBasis(it.calcMethod).toDouble() }
+        "%.2f".format(daily)
+    }
+    val accumulatedYield = remember(holding) {
+        holding.sumOf { calculateAccruedInterest(it.principal, it.annualRate, it.startDate, it.termDays, it.calcMethod) }
+    }
+    val weightedRateText = remember(holding, weightedRate) {
+        if (holding.isEmpty()) "---" else "${"%.2f".format(weightedRate)}%"
+    }
+    val archivedYield = remember(deposits) {
+        deposits.filter { it.status != DepositStatus.HOLDING }
+            .sumOf { it.maturityAmount - it.principal }
     }
 
     // 按银行分组
     val bankGroups = remember(holding) {
         holding.groupBy { it.bankName }.map { (bank, deps) ->
-            val bal = deps.sumOf { it.principal + calculateAccruedInterest(it.principal, it.annualRate, it.startDate, it.termDays) }
+            val bal = deps.sumOf { it.principal + calculateAccruedInterest(it.principal, it.annualRate, it.startDate, it.termDays, it.calcMethod) }
             Triple(bank, bal, deps)
         }.sortedByDescending { it.second }
     }
@@ -111,7 +130,13 @@ fun ReportsScreen(
                         annualExpected = annualExpected,
                         totalYield = totalYield,
                         dailyRate = dailyRate,
-                        weightedRate = weightedRate
+                        accumulatedYield = accumulatedYield,
+                        weightedRateText = weightedRateText,
+                        archivedYield = archivedYield,
+                        onDailyDetail = onDailyDetail,
+                        onAnnualDetail = onAnnualDetail,
+                        onMaturityDetail = onMaturityDetail,
+                        onAccumulatedDetail = onAccumulatedDetail
                     )
                     "bankDistribution" -> BankDistributionSection(
                         bankGroups = bankGroups,
@@ -135,7 +160,7 @@ fun ReportsScreen(
 }
 
 // ── 资产总览（3x2网格） ──
-// 布局：持有本金/资产余额 | 日收益率/预期年度收益 | 到期总收益/综合年化率
+// 布局：持有本金/资产余额 | 日收益/预期年度收益 | 到期总收益/综合年化率
 
 @Composable
 private fun AssetOverviewSection(
@@ -144,7 +169,13 @@ private fun AssetOverviewSection(
     annualExpected: Double,
     totalYield: Double,
     dailyRate: String,
-    weightedRate: Double
+    accumulatedYield: Double,
+    weightedRateText: String,
+    archivedYield: Double,
+    onDailyDetail: () -> Unit = {},
+    onAnnualDetail: () -> Unit = {},
+    onMaturityDetail: () -> Unit = {},
+    onAccumulatedDetail: () -> Unit = {}
 ) {
     val rateText = "${dailyRate}"
     Card(
@@ -162,13 +193,18 @@ private fun AssetOverviewSection(
             }
             Spacer(Modifier.height(3.dp))
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(3.dp)) {
-                AssetField("日收益率", "¥$rateText", Modifier.weight(1f))
-                AssetField("预期年度收益", fmt(annualExpected), Modifier.weight(1f))
+                AssetField("日收益", "¥$rateText", Modifier.weight(1f), onClick = onDailyDetail)
+                AssetField("今年预估收益", fmt(annualExpected), Modifier.weight(1f), onClick = onAnnualDetail)
             }
             Spacer(Modifier.height(3.dp))
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(3.dp)) {
-                AssetField("到期总收益", fmt(totalYield), Modifier.weight(1f))
-                AssetField("综合年化率", "${"%.2f".format(weightedRate)}%", Modifier.weight(1f))
+                AssetField("持有中累计收益", fmt(accumulatedYield), Modifier.weight(1f), onClick = onAccumulatedDetail)
+                AssetField("到期总收益", fmt(totalYield), Modifier.weight(1f), onClick = onMaturityDetail)
+            }
+            Spacer(Modifier.height(3.dp))
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(3.dp)) {
+                AssetField("综合年化率", weightedRateText, Modifier.weight(1f))
+                AssetField("归档历史收益", fmt(archivedYield), Modifier.weight(1f))
             }
         }
     }
@@ -260,7 +296,7 @@ private fun AssetCategorySection(
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             Text(bank, Modifier.weight(1.2f), fontSize = 11.sp, color = Color(0xFF1E293B), textAlign = TextAlign.Center)
-                            Text(fmt(bal), Modifier.weight(1f), fontSize = 11.sp, fontWeight = FontWeight.W600, color = Color(0xFF1E293B), textAlign = TextAlign.Center)
+                            Text(fmtI(bal), Modifier.weight(1f), fontSize = 11.sp, fontWeight = FontWeight.W600, color = Color(0xFF1E293B), textAlign = TextAlign.Center)
                             Text("${"%.1f".format(pct)}%", Modifier.weight(0.8f), fontSize = 11.sp, color = Color(0xFF475569), textAlign = TextAlign.Center)
                             Text("${deps.size}笔", Modifier.weight(0.6f), fontSize = 11.sp, color = Color(0xFF475569), textAlign = TextAlign.Center)
                         }
@@ -276,14 +312,22 @@ private fun AssetCategorySection(
 // ── 资产收益网格字段（透明圆角背景） ──
 
 @Composable
-private fun AssetField(label: String, value: String, modifier: Modifier = Modifier) {
+private fun AssetField(label: String, value: String, modifier: Modifier = Modifier, onClick: (() -> Unit)? = null) {
     Surface(
-        modifier = modifier,
+        modifier = modifier.then(
+            if (onClick != null) Modifier.clickable { onClick() } else Modifier
+        ),
         shape = RoundedCornerShape(10.dp),
         color = Color(0xFFF8FAFC)
     ) {
         Column(Modifier.padding(5.dp)) {
-            Text(label, fontSize = 9.sp, fontWeight = FontWeight.W500, color = Color(0xFF94A3B8), lineHeight = 10.sp)
+            Row(verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(2.dp)) {
+                Text(label, fontSize = 9.sp, fontWeight = FontWeight.W500, color = Color(0xFF94A3B8), lineHeight = 10.sp)
+                if (onClick != null) {
+                    Icon(Icons.Filled.ChevronRight, null, Modifier.size(10.dp), tint = Color(0xFF94A3B8))
+                }
+            }
             Text(value, fontSize = 12.sp, fontWeight = FontWeight.Bold, color = Color(0xFF1E293B), lineHeight = 14.sp)
         }
     }

@@ -56,7 +56,7 @@ fun DepositDetailScreen(
 
     val remainingDays = daysUntilMaturity(deposit.endDate)
     val accruedInterest = calculateAccruedInterest(
-        deposit.principal, deposit.annualRate, deposit.startDate, deposit.termDays
+        deposit.principal, deposit.annualRate, deposit.startDate, deposit.termDays, deposit.calcMethod
     )
     val assetBalance = deposit.principal + accruedInterest
 

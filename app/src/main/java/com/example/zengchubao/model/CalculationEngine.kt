@@ -6,6 +6,10 @@ import kotlinx.datetime.*
 const val DAYS_PER_MONTH = 30
 const val DAYS_PER_YEAR = 360
 
+/** 根据计息法返回年基准天数：对年对月→365，实际天数→360 */
+fun yearBasis(calcMethod: CalcMethod): Int =
+    if (calcMethod == CalcMethod.ANNUAL_MATCH) 365 else 360
+
 // ── 获取今天日期字符串 ──
 fun todayString(): String {
     val now = Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault()).date
@@ -112,11 +116,12 @@ fun calculateAccruedInterest(
     principal: Double,
     annualRate: Double,
     startDate: String,
-    termDays: Int
+    termDays: Int,
+    calcMethod: CalcMethod
 ): Double {
     val today = todayString()
     val elapsed = maxOf(0, minOf(daysBetween(startDate, today), termDays))
-    return principal * (annualRate / 100.0) * (elapsed.toDouble() / DAYS_PER_YEAR)
+    return principal * (annualRate / 100.0) * (elapsed.toDouble() / yearBasis(calcMethod).toDouble())
 }
 
 // ── 提前支取计息（传统标准：活期利率 × 实际天数） ──
@@ -187,35 +192,53 @@ fun daysUntilMaturity(endDate: String): Int {
 // ── 年化收益预估 ──
 
 /**
- * 预期年度收益 = SUM(持有中存单的年化预计收益)
- * 年化预计收益 = 本金 × 年利率%
+ * 今年预估收益 = Σ(本金 × 年利率% ÷ 365 × 单笔今年有效天数)
+ *
+ * 单笔今年有效天数 = min(今年12-31, 到期日) - max(今年1-1, 起存日)
+ * 起存日早于今年 → 从1月1日起算；起存日今年内 → 从起存日起算
+ * 例：2024年存的 → 1/1~12/31 = 365天
+ * 例：今年7/10新存 → 7/10~12/31 = 174天
  */
 fun calculateAnnualExpectedYield(deposits: List<Deposit>): Double {
+    val today = todayString()
+    val yearStart = "${today.take(4)}-01-01"
+    val yearEnd = "${today.take(4)}-12-31"
     return deposits.filter { it.status == DepositStatus.HOLDING }
-        .sumOf { it.principal * (it.annualRate / 100.0) }
+        .sumOf { dep ->
+            val start = if (dep.startDate > yearStart) addDays(dep.startDate, 1) else yearStart
+            val end = if (dep.endDate < yearEnd) dep.endDate else yearEnd
+            if (start >= end) return@sumOf 0.0
+            val days = daysBetween(start, end) + 1
+            dep.principal * (dep.annualRate / 100.0) / yearBasis(dep.calcMethod).toDouble() * days
+        }
 }
 
 // ── 到期总收益 ──
 
 fun calculateTotalMaturityYield(deposits: List<Deposit>): Double {
     return deposits.filter { it.status == DepositStatus.HOLDING }
-        .sumOf { it.maturityAmount - it.principal }
+        .sumOf { calculateMaturityInterest(it.principal, it.annualRate, it.termDays) }
 }
 
-// ── 加权平均年化利率 ──
+// ── 加权平均年化利率（时间加权） ──
 
+/**
+ * 综合年化率 = Σ(本金 × 年利率 × 存期天数) / Σ(本金 × 存期天数)
+ * 引入时间权重：3年期4% > 1年期4%，更精准反映资金综合成本
+ */
 fun calculateWeightedRate(deposits: List<Deposit>): Double {
     val holding = deposits.filter { it.status == DepositStatus.HOLDING }
-    val totalPrincipal = holding.sumOf { it.principal }
-    if (totalPrincipal <= 0) return 0.0
-    return holding.sumOf { it.principal * it.annualRate } / totalPrincipal
+    val weightedSum = holding.sumOf { it.principal * it.annualRate * it.termDays }
+    val totalWeight = holding.sumOf { it.principal * it.termDays.toDouble() }
+    if (totalWeight <= 0) return 0.0
+    return weightedSum / totalWeight
 }
 
 // ── 资产余额 ──
 
 fun calculateAssetBalance(deposits: List<Deposit>): Double {
     return deposits.filter { it.status == DepositStatus.HOLDING }
-        .sumOf { it.principal + calculateAccruedInterest(it.principal, it.annualRate, it.startDate, it.termDays) }
+        .sumOf { it.principal + calculateAccruedInterest(it.principal, it.annualRate, it.startDate, it.termDays, it.calcMethod) }
 }
 
 // ── 累计存入 ──
@@ -229,7 +252,7 @@ fun calculateTotalDeposited(deposits: List<Deposit>): Double {
 fun calculateTotalYield(deposits: List<Deposit>): Double {
     return deposits.sumOf {
         when (it.status) {
-            DepositStatus.HOLDING -> calculateAccruedInterest(it.principal, it.annualRate, it.startDate, it.termDays)
+            DepositStatus.HOLDING -> calculateAccruedInterest(it.principal, it.annualRate, it.startDate, it.termDays, it.calcMethod)
             DepositStatus.ARCHIVED, DepositStatus.MATURED, DepositStatus.EARLY_WITHDRAWN ->
                 it.maturityAmount - it.principal
         }

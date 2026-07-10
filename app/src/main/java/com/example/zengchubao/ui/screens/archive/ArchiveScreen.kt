@@ -22,7 +22,7 @@ import com.example.zengchubao.ui.screens.home.heroGradient
 import java.text.NumberFormat
 import java.util.Locale
 
-private val CN_INT = NumberFormat.getNumberInstance(Locale.CHINA).apply { maximumFractionDigits = 0 }
+private val CN_INT = NumberFormat.getNumberInstance(Locale.CHINA).apply { minimumFractionDigits = 2; maximumFractionDigits = 2 }
 private val CN = NumberFormat.getNumberInstance(Locale.CHINA).apply { minimumFractionDigits = 2; maximumFractionDigits = 2 }
 private fun fmtI(v: Double) = "¥${CN_INT.format(v)}"
 

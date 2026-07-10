@@ -14,6 +14,8 @@ import com.example.zengchubao.ui.screens.archive.ArchiveScreen
 import com.example.zengchubao.ui.screens.management.ManagementScreen
 import com.example.zengchubao.ui.screens.newdeposit.NewDepositScreen
 import com.example.zengchubao.ui.screens.detail.DepositDetailScreen
+import com.example.zengchubao.ui.screens.breakdown.EarningsBreakdownScreen
+import com.example.zengchubao.ui.screens.breakdown.BreakdownMode
 import com.example.zengchubao.storage.LocalFileManager
 import com.example.zengchubao.model.*
 import androidx.compose.animation.*
@@ -46,6 +48,7 @@ sealed class Screen {
     data object NewDeposit : Screen()
     data class DepositDetail(val depositId: String) : Screen()
     data class EditDeposit(val depositId: String) : Screen()
+    data class EarningsBreakdown(val mode: String) : Screen()  // "daily" | "annual" | "accumulated"
 }
 
 @Composable
@@ -107,6 +110,7 @@ fun ZengChuBaoApp() {
         is Screen.NewDeposit -> 1
         is Screen.EditDeposit -> 2
         is Screen.DepositDetail -> 3
+        is Screen.EarningsBreakdown -> 4
     }
 
     Box(modifier = Modifier.fillMaxSize()) {
@@ -150,12 +154,19 @@ fun ZengChuBaoApp() {
                                     onDepositClick = { depositId ->
                                         currentScreen = Screen.DepositDetail(depositId)
                                     },
+                                    onAccumulatedDetail = { currentScreen = Screen.EarningsBreakdown("accumulated") },
+                                    onAnnualDetail = { currentScreen = Screen.EarningsBreakdown("annual") },
+                                    onDailyDetail = { currentScreen = Screen.EarningsBreakdown("daily") },
                                     onRefresh = { scope.launch { refreshData() } }
                                 )
                                 AppTab.REPORTS -> ReportsScreen(
                                     deposits = deposits,
                                     banks = banks,
-                                    settings = settings
+                                    settings = settings,
+                                    onDailyDetail = { currentScreen = Screen.EarningsBreakdown("daily") },
+                                    onAnnualDetail = { currentScreen = Screen.EarningsBreakdown("annual") },
+                                    onMaturityDetail = { currentScreen = Screen.EarningsBreakdown("maturity") },
+                                    onAccumulatedDetail = { currentScreen = Screen.EarningsBreakdown("accumulated") }
                                 )
                                 AppTab.ARCHIVE -> ArchiveScreen(
                                     archiveRecords = archiveRecords,
@@ -233,6 +244,20 @@ fun ZengChuBaoApp() {
                             onProductsChanged = { products = it }
                         )
                     }
+                }
+                is Screen.EarningsBreakdown -> {
+                    val mode = when (screen.mode) {
+                        "daily" -> BreakdownMode.DAILY
+                        "annual" -> BreakdownMode.ANNUAL
+                        "accumulated" -> BreakdownMode.ACCUMULATED
+                        "maturity" -> BreakdownMode.MATURITY
+                        else -> BreakdownMode.DAILY
+                    }
+                    EarningsBreakdownScreen(
+                        deposits = deposits,
+                        mode = mode,
+                        onBack = { currentScreen = Screen.Main }
+                    )
                 }
             }
         }

@@ -72,12 +72,22 @@ fun NewDepositScreen(
     var newBankName by remember { mutableStateOf("") }
     var showDatePicker by remember { mutableStateOf(false) }
 
-    val endDate = remember(startDate, selectedTermDays, selectedCalcMethod) {
-        calculateEndDate(startDate, selectedTermDays, selectedCalcMethod)
+    // 实际天数法→将选中存期换算成实际日历天数
+    val effectiveTermDays = remember(startDate, selectedTermDays, selectedCalcMethod) {
+        if (selectedCalcMethod == CalcMethod.ACTUAL_DAYS) {
+            val endDateANM = calculateEndDate(startDate, selectedTermDays, CalcMethod.ANNUAL_MATCH)
+            daysBetween(startDate, endDateANM)
+        } else {
+            selectedTermDays
+        }
+    }
+
+    val endDate = remember(startDate, effectiveTermDays, selectedCalcMethod) {
+        calculateEndDate(startDate, effectiveTermDays, selectedCalcMethod)
     }
     val principalVal = principal.toDoubleOrNull() ?: 0.0
     val rateVal = annualRate.toDoubleOrNull() ?: 0.0
-    val estimatedInterest = calculateMaturityInterest(principalVal, rateVal, selectedTermDays)
+    val estimatedInterest = calculateMaturityInterest(principalVal, rateVal, effectiveTermDays)
     val estimatedTotal = principalVal + estimatedInterest
 
     Scaffold(
@@ -94,7 +104,7 @@ fun NewDepositScreen(
                                     productName = productName.ifEmpty { selectedBankName + "定存" },
                                     principal = principalVal, annualRate = rateVal,
                                     startDate = startDate, endDate = endDate,
-                                    termDays = selectedTermDays, termLabel = selectedTermLabel,
+                                    termDays = effectiveTermDays, termLabel = selectedTermLabel,
                                     calcMethod = selectedCalcMethod, maturityAmount = estimatedTotal,
                                     note = note, updatedAt = System.currentTimeMillis()
                                 ) ?: Deposit(
@@ -104,7 +114,7 @@ fun NewDepositScreen(
                                     productType = ProductType.FIXED_DEPOSIT,
                                     principal = principalVal, annualRate = rateVal,
                                     startDate = startDate, endDate = endDate,
-                                    termDays = selectedTermDays, termLabel = selectedTermLabel,
+                                    termDays = effectiveTermDays, termLabel = selectedTermLabel,
                                     calcMethod = selectedCalcMethod, maturityAmount = estimatedTotal,
                                     note = note
                                 )

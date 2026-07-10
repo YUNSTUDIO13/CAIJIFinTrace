@@ -50,6 +50,9 @@ fun HomeScreen(
     deposits: List<Deposit>,
     onNewDeposit: () -> Unit,
     onDepositClick: (String) -> Unit,
+    onAccumulatedDetail: () -> Unit = {},
+    onAnnualDetail: () -> Unit = {},
+    onDailyDetail: () -> Unit = {},
     onRefresh: () -> Unit
 ) {
     val holdingDeposits = remember(deposits) {
@@ -78,10 +81,14 @@ fun HomeScreen(
     }
 
     val assetBalance: Double = remember(bankFiltered) { calculateAssetBalance(bankFiltered) }
-    val weightedRate: Double = remember(bankFiltered) { calculateWeightedRate(bankFiltered) }
     val annualExpectedYield: Double = remember(bankFiltered) { calculateAnnualExpectedYield(bankFiltered) }
     val holdingTotalYield: Double = remember(bankFiltered) {
-        bankFiltered.sumOf { calculateAccruedInterest(it.principal, it.annualRate, it.startDate, it.termDays) }
+        bankFiltered.sumOf { calculateAccruedInterest(it.principal, it.annualRate, it.startDate, it.termDays, it.calcMethod) }
+    }
+    val dailyYield: Double = remember(bankFiltered) {
+        val today = todayString()
+        bankFiltered.filter { it.startDate <= today }
+            .sumOf { it.principal * (it.annualRate / 100.0) / yearBasis(it.calcMethod).toDouble() }
     }
 
     val lifecycleOwner = LocalLifecycleOwner.current
@@ -136,9 +143,12 @@ fun HomeScreen(
                         HorizontalDivider(thickness = 1.dp, color = Color(0x1AFFFFFF))
                         Spacer(Modifier.height(4.dp))
                         Row(modifier = Modifier.fillMaxWidth()) {
-                            HeroMetric("综合年化%", "${"%.2f".format(weightedRate)}%", Modifier.weight(1f))
-                            HeroMetric("今年预估收益", fmtI(annualExpectedYield), Modifier.weight(1f))
-                            HeroMetric("持有中累计收益", fmtI(holdingTotalYield), Modifier.weight(1f))
+                            HeroMetric("日收益", "¥${fmtD(dailyYield)}", Modifier.weight(1f)
+                                .clickable { onDailyDetail() })
+                            HeroMetric("今年预估收益", fmtI(annualExpectedYield), Modifier.weight(1f)
+                                .clickable { onAnnualDetail() })
+                            HeroMetric("持有中累计收益", fmtI(holdingTotalYield), Modifier.weight(1f)
+                                .clickable { onAccumulatedDetail() })
                         }
                     }
                 }
@@ -272,7 +282,7 @@ private fun StatMiniCard(title: String, value: String, selected: Boolean = false
 fun RefDepositCard(deposit: Deposit, onClick: () -> Unit, modifier: Modifier = Modifier) {
     val remainingDays = daysUntilMaturity(deposit.endDate)
     val isExpired = deposit.status == DepositStatus.MATURED || remainingDays < 0
-    val isExpiringSoon = remainingDays in 1..30
+    val isExpiringSoon = remainingDays in 0..30
 
     val dateColor = when {
         isExpired -> Color(0xFFF87171)
@@ -371,7 +381,7 @@ private fun BankFirstCharIcon(bankName: String) {
 // ── 迷你 Badge ──
 
 @Composable
-private fun MiniBadge(text: String, bg: Color, fg: Color) {
+fun MiniBadge(text: String, bg: Color, fg: Color) {
     Surface(shape = RoundedCornerShape(20.dp), color = bg) {
         Text(text, fontSize = 9.sp, fontWeight = FontWeight.W500, color = fg,
             modifier = Modifier.padding(horizontal = 6.dp, vertical = 1.dp),
@@ -382,7 +392,7 @@ private fun MiniBadge(text: String, bg: Color, fg: Color) {
 // ── 钱包图标（wallet_2_line） ──
 
 @Composable
-private fun WalletIcon(modifier: Modifier = Modifier, tint: Color = Color(0xFF1E293B)) {
+fun WalletIcon(modifier: Modifier = Modifier, tint: Color = Color(0xFF1E293B)) {
     Icon(
         painter = painterResource(id = R.drawable.ic_wallet),
         contentDescription = "到期利息",
@@ -394,7 +404,7 @@ private fun WalletIcon(modifier: Modifier = Modifier, tint: Color = Color(0xFF1E
 // ── 动态利率图标 ──
 
 @Composable
-private fun RateIcon(rate: Double, modifier: Modifier = Modifier, color: Color = rateColorFor(rate)) {
+fun RateIcon(rate: Double, modifier: Modifier = Modifier, color: Color = rateColorFor(rate)) {
     val sweep = ((rate / 5.0).coerceIn(0.0, 1.0) * 360).toFloat()
     Canvas(modifier = modifier) {
         val strokeWidth = 3.dp.toPx()
@@ -421,7 +431,7 @@ private fun RateIcon(rate: Double, modifier: Modifier = Modifier, color: Color =
     }
 }
 
-private fun rateColorFor(rate: Double): Color = when {
+fun rateColorFor(rate: Double): Color = when {
     rate >= 3.0 -> Color(0xFFD4A853)
     rate >= 2.0 -> Color(0xFFE8C070)
     rate >= 1.0 -> Color(0xFFF59E0B)
