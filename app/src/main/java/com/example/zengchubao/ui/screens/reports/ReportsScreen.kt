@@ -259,7 +259,7 @@ private fun BankDistributionSection(
             }
         } else {
             // Donut 环形图（含中心金额 + 拉线标签）
-            Box(modifier = Modifier.fillMaxWidth().height(230.dp)) {
+            Box(modifier = Modifier.fillMaxWidth().height(260.dp)) {
                 DonutChartWithLabels(
                     items = donutItems,
                     totalBalance = totalBalance,
@@ -267,7 +267,7 @@ private fun BankDistributionSection(
                 )
             }
 
-            Spacer(Modifier.height(4.dp))
+            Spacer(Modifier.height(2.dp))
 
             // 明细列表
             Column {
@@ -282,14 +282,14 @@ private fun BankDistributionSection(
                         color = color,
                         showAnim = showAnim
                     )
-                    Spacer(Modifier.height(6.dp))
+                    Spacer(Modifier.height(8.dp))
                 }
             }
         }
     }
 }
 
-// ── Donut 环形图：中心金额 + 拉线标签 ──
+// ── Donut 环形图：中心金额 + 拉线标签 + 连线 ──
 
 @Composable
 private fun DonutChartWithLabels(
@@ -308,16 +308,18 @@ private fun DonutChartWithLabels(
         val w = size.width
         val h = size.height
         val cx = w / 2f
-        val cy = h * 0.47f
-        val outerR = minOf(w * 0.32f, 120f)
-        val innerR = outerR * 0.6f
+        val cy = h / 2f
+        val outerR = minOf(w * 0.40f, 145f)
+        val innerR = outerR * 0.62f
         val strokeW = outerR - innerR
+        val labelR = outerR + strokeW * 0.5f + 12f // 连线起点（圆环外边缘中点）
 
         val total = items.sumOf { it.second }
         if (total <= 0) return@Canvas
 
         var startAngle = -90f
-        items.forEach { (name, value, color) ->
+        val segmentData = mutableListOf<Triple<Float, Float, Color>>() // midAngle, sweep, color
+        items.forEach { (_, value, color) ->
             val sweep = ((value / total * 360f).coerceAtLeast(1.5)).toFloat()
             val animatedSweep = sweep * animProgress
             drawArc(
@@ -329,42 +331,59 @@ private fun DonutChartWithLabels(
                 size = Size(outerR * 2, outerR * 2),
                 style = Stroke(width = strokeW, cap = StrokeCap.Butt)
             )
+            segmentData.add(Triple(startAngle + sweep / 2f, sweep, color))
             startAngle += sweep
         }
 
-        // 中心覆盖白色圆（模拟中空）
+        // 拉线：从圆环外边缘中点拉出到标签位置
+        val labelEndR = labelR + 30f
+        segmentData.forEach { (midAngle, _, color) ->
+            val rad = Math.toRadians(midAngle.toDouble()).toFloat()
+            val startX = cx + labelR * cos(rad)
+            val startY = cy + labelR * sin(rad)
+            val endX = cx + labelEndR * cos(rad)
+            val endY = cy + labelEndR * sin(rad)
+            drawLine(
+                color = color.copy(alpha = 0.5f),
+                start = Offset(startX, startY),
+                end = Offset(endX, endY),
+                strokeWidth = 1.5f
+            )
+        }
+
+        // 中心白色圆
         drawCircle(Color.White, radius = innerR, center = Offset(cx, cy))
     }
 
-    // 中心文字叠加层
+    // 中心文字
     Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxSize()) {
-        Column(
-            horizontalAlignment = Alignment.CenterHorizontally,
-            modifier = Modifier.offset(y = (-8).dp)
-        ) {
+        Column(horizontalAlignment = Alignment.CenterHorizontally) {
             Text("资产总额", fontSize = 9.sp, color = Color(0xFF94A3B8), fontWeight = FontWeight.W500)
-            Text(fmt(totalBalance), fontSize = 18.sp, fontWeight = FontWeight.Bold, color = Color(0xFF1E293B))
+            Text(fmt(totalBalance), fontSize = 15.sp, fontWeight = FontWeight.Bold, color = Color(0xFF1E293B))
         }
     }
 
-    // 拉线标签（需要 viewport 坐标，独立于 Canvas 放 Box 外侧）
+    // 拉线文字标签
     Box(modifier = Modifier.fillMaxSize()) {
         val viewW = with(density) { 360.dp.toPx() }
-        val viewH = with(density) { 230.dp.toPx() }
+        val viewH = with(density) { 260.dp.toPx() }
         val cx = viewW / 2f
-        val cy = viewH * 0.47f
-        val outerR = minOf(viewW * 0.32f, with(density) { 120.dp.toPx() })
-        val labelRadius = outerR + with(density) { 18.dp.toPx() }
+        val cy = viewH / 2f
+        val outerR = minOf(viewW * 0.40f, with(density) { 145.dp.toPx() })
+        val strokeW = outerR * 0.38f
+        val labelR = outerR + strokeW * 0.5f + 12f
+        val labelEndR = labelR + 36f
         val total = items.sumOf { it.second }.coerceAtLeast(1.0)
 
         var start = -90f
-        items.forEach { (name, value, color) ->
+        items.forEach { (name, value, _) ->
             val sweep = ((value / total * 360f).coerceAtLeast(1.5)).toFloat()
             val midAngle = start + sweep / 2f
             val rad = Math.toRadians(midAngle.toDouble()).toFloat()
-            val lx = cx + labelRadius * cos(rad)
-            val ly = cy + labelRadius * sin(rad)
+            val lx = cx + labelEndR * cos(rad)
+            val ly = cy + labelEndR * sin(rad)
             val pct = value / total * 100
+            val isLeft = cos(rad) < 0
 
             Text(
                 text = "$name ${"%.1f".format(pct)}%",
@@ -372,8 +391,8 @@ private fun DonutChartWithLabels(
                 color = Color(0xFF475569),
                 fontWeight = FontWeight.W500,
                 modifier = Modifier.offset(
-                    x = with(density) { (lx / density.density).dp },
-                    y = with(density) { (ly / density.density).dp - 4.dp }
+                    x = with(density) { (lx / density.density).dp - if (isLeft) 50.dp else 4.dp },
+                    y = with(density) { (ly / density.density).dp - 6.dp }
                 )
             )
             start += sweep
@@ -397,7 +416,7 @@ private fun DonutEmptyChart() {
                 style = Stroke(strokeW, cap = StrokeCap.Butt))
             drawCircle(Color.White, radius = outerR - strokeW, center = Offset(cx, cy))
         }
-        Text("¥0.00", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = Color(0xFFCBD5E1))
+        Text("¥0.00", fontSize = 15.sp, fontWeight = FontWeight.Bold, color = Color(0xFFCBD5E1))
     }
 }
 
@@ -418,27 +437,31 @@ private fun BankDetailItem(
         label = "barAnim"
     )
 
-    Row(
-        modifier = Modifier.fillMaxWidth().padding(vertical = 2.dp),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        // 银行圆形 Icon（首字）
-        BankIcon(bankName = bankName, color = color)
-
-        Spacer(Modifier.width(10.dp))
-
-        // 中间：银行名 + 占比 + 能量条
-        Column(Modifier.weight(1f)) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Text(bankName, fontSize = 11.sp, fontWeight = FontWeight.W600, color = Color(0xFF1E293B))
-                Spacer(Modifier.width(6.dp))
-                Text("${"%.1f".format(percentage)}%", fontSize = 10.sp, color = Color(0xFF94A3B8))
-            }
-            Spacer(Modifier.height(4.dp))
-            // 能量条
+    Column(modifier = Modifier.fillMaxWidth()) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            // 银行圆形 Icon（首字，去阴影）
+            BankIcon(bankName = bankName, color = color)
+            Spacer(Modifier.width(10.dp))
+            // 银行名 + 占比
+            Text(bankName, fontSize = 11.sp, fontWeight = FontWeight.W600, color = Color(0xFF1E293B))
+            Spacer(Modifier.width(6.dp))
+            Text("${"%.1f".format(percentage)}%", fontSize = 10.sp, color = Color(0xFF94A3B8))
+            Spacer(Modifier.weight(1f))
+            // 余额 右对齐
+            Text(fmt(balance), fontSize = 11.sp, fontWeight = FontWeight.W600, color = Color(0xFF1E293B))
+        }
+        Spacer(Modifier.height(4.dp))
+        // 能量条 + 笔数
+        Row(
+            modifier = Modifier.fillMaxWidth().padding(start = 44.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
             Box(
                 Modifier
-                    .fillMaxWidth()
+                    .weight(1f)
                     .height(4.dp)
                     .background(Color(0xFFF1F5F9), RoundedCornerShape(2.dp))
             ) {
@@ -449,19 +472,13 @@ private fun BankDetailItem(
                         .background(color, RoundedCornerShape(2.dp))
                 )
             }
-        }
-
-        Spacer(Modifier.width(12.dp))
-
-        // 右侧：余额 + 笔数
-        Column(horizontalAlignment = Alignment.End) {
-            Text(fmt(balance), fontSize = 12.sp, fontWeight = FontWeight.Bold, color = Color(0xFF1E293B))
+            Spacer(Modifier.width(12.dp))
             Text("${count}笔", fontSize = 9.sp, color = Color(0xFF94A3B8))
         }
     }
 }
 
-// ── 银行圆形 Icon（微立体感）──
+// ── 银行圆形 Icon（去阴影，防八边形）──
 
 @Composable
 private fun BankIcon(bankName: String, color: Color) {
@@ -469,9 +486,8 @@ private fun BankIcon(bankName: String, color: Color) {
     Box(
         modifier = Modifier
             .size(34.dp)
-            .shadow(elevation = 2.dp, shape = CircleShape, clip = false)
             .clip(CircleShape)
-            .background(color.copy(alpha = 0.15f)),
+            .background(color.copy(alpha = 0.12f)),
         contentAlignment = Alignment.Center
     ) {
         Text(firstChar, fontSize = 14.sp, fontWeight = FontWeight.Bold, color = color)
