@@ -17,6 +17,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.nativeCanvas
@@ -263,11 +264,6 @@ private fun BankDistributionSection(
                     totalBalance = totalBalance,
                     showAnim = showAnim
                 )
-                DonutLabels(
-                    items = donutItems,
-                    totalBalance = totalBalance,
-                    density = LocalDensity.current
-                )
             }
 
             Spacer(Modifier.height(8.dp))
@@ -311,133 +307,74 @@ private fun DonutChartWithLabels(
         animationSpec = tween(800),
         label = "donutAnim"
     )
-
     val density = LocalDensity.current
-    val outerRpx = with(density) { 65.dp.toPx() }
-    val strokeWpx = outerRpx * 0.36f
-    val innerRpx = outerRpx - strokeWpx
+    val outerR = with(density) { 65.dp.toPx() }
+    val strokeW = outerR * 0.36f
+    val innerR = outerR - strokeW
+    val radialExt = with(density) { 12.dp.toPx() }
+    val horizExt = with(density) { 26.dp.toPx() }
 
     Canvas(modifier = Modifier.fillMaxSize()) {
-        val w = size.width
-        val h = size.height
-        val cx = w / 2f
-        val cy = h / 2f
-
+        val cx = size.width / 2f; val cy = size.height / 2f
         val total = items.sumOf { it.second }
         if (total <= 0) return@Canvas
 
         // ── 1. 圆环 ──
         var startAngle = -90f
-        val segs = mutableListOf<Triple<Float, Float, Color>>()
         items.forEach { (_, value, color) ->
             val sweep = ((value / total * 360f).coerceAtLeast(1.5)).toFloat()
             drawArc(color, startAngle, sweep * animProgress, false,
-                Offset(cx - outerRpx, cy - outerRpx),
-                Size(outerRpx * 2, outerRpx * 2),
-                style = Stroke(strokeWpx, cap = StrokeCap.Butt))
-            segs.add(Triple(startAngle + sweep / 2f, sweep, color))
+                Offset(cx - outerR, cy - outerR), Size(outerR * 2, outerR * 2),
+                style = Stroke(strokeW, cap = StrokeCap.Butt))
             startAngle += sweep
         }
+        drawCircle(Color.White, innerR, Offset(cx, cy))
 
-        // ── 2. 中心白圆 ──
-        drawCircle(Color.White, innerRpx, Offset(cx, cy))
-    }
-
-    // ── 中心文字（Compose Text 叠加，避免 nativeCanvas 重叠）──
-    Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxSize()) {
-        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-            Text(fmt(totalBalance), fontSize = 9.sp, fontWeight = FontWeight.Bold,
-                color = Color(0xFF1E293B), lineHeight = 11.sp)
-            Spacer(Modifier.height(2.dp))
-            Text("资产总额", fontSize = 8.sp, color = Color(0xFF94A3B8),
-                fontWeight = FontWeight.W500, lineHeight = 10.sp)
+        // ── 2. 中心文字 ──
+        val nc = drawContext.canvas.nativeCanvas
+        val valP = android.graphics.Paint().apply {
+            color = android.graphics.Color.parseColor("#1E293B")
+            textSize = 9.sp.toPx(); typeface = android.graphics.Typeface.DEFAULT_BOLD
+            isAntiAlias = true; textAlign = android.graphics.Paint.Align.CENTER
         }
-    }
-}
-
-// ── 标签 Canvas（两段折线：短径向+短水平 + y自动错开）──
-@Composable
-private fun DonutLabels(
-    items: List<Triple<String, Double, Color>>,
-    totalBalance: Double,
-    density: androidx.compose.ui.unit.Density
-) {
-    val outerRpx = with(density) { 65.dp.toPx() }
-    val radialLen = with(density) { 8.dp.toPx() }    // 段1: 径向延伸长度
-    val horizBase = with(density) { 18.dp.toPx() }    // 段2: 基础水平长度
-    val staggerH = with(density) { 14.sp.toPx() }     // y 错开高度
-
-    Canvas(modifier = Modifier.fillMaxSize()) {
-        val w = size.width; val h = size.height
-        val cx = w / 2f; val cy = h / 2f
-        val total = items.sumOf { it.second }
-        if (total <= 0) return@Canvas
-
-        val labelPaint = android.graphics.Paint().apply {
-            color = android.graphics.Color.parseColor("#475569")
-            textSize = 7.sp.toPx()
-            isAntiAlias = true
-            typeface = android.graphics.Typeface.DEFAULT_BOLD
+        val lblP = android.graphics.Paint().apply {
+            color = android.graphics.Color.parseColor("#94A3B8")
+            textSize = 8.sp.toPx()
+            isAntiAlias = true; textAlign = android.graphics.Paint.Align.CENTER
         }
-        val occupied = mutableListOf<Pair<Float, Float>>() // (minY, maxY)
+        nc.drawText(fmt(totalBalance), cx, cy - 2f, valP)
+        nc.drawText("资产总额", cx, cy + 16f, lblP)
 
+        // ── 3. 折线 + 标签 ──
         var start = -90f
-        items.forEachIndexed { idx, (name, value, color) ->
+        items.forEach { (name, value, color) ->
             val sweep = ((value / total * 360f).coerceAtLeast(1.5)).toFloat()
             val mid = start + sweep / 2f
             val rad = Math.toRadians(mid.toDouble()).toFloat()
             val cosR = cos(rad); val sinR = sin(rad)
             val pct = "%.1f".format(value / total * 100)
 
-            val goLeft = cosR < 0
-            // 段1: 环边缘沿径向延伸 radialLen
-            val r1 = outerRpx
-            val r2 = outerRpx + radialLen
-            val x1 = cx + r1 * cosR; val y1 = cy + r1 * sinR
-            val x2 = cx + r2 * cosR; val y2 = cy + r2 * sinR
+            val sR = outerR + with(density) { 4.dp.toPx() }
+            val sx = cx + sR * cosR; val sy = cy + sR * sinR
+            val bR = sR + radialExt
+            val bx = cx + bR * cosR; val by = cy + bR * sinR
+            val isRight = cosR > 0
+            val ex = if (isRight) bx + horizExt else bx - horizExt
 
-            // 段2: 拐90°水平延伸 (基础 horizBase + 错位增量)
-            val conflict = occupied.any { kotlin.math.abs(y2 - it.first) < staggerH * 1.2f
-                || kotlin.math.abs(y2 - it.second) < staggerH * 1.2f }
-            val extra = if (conflict) horizBase * 1.4f else 0f
-            val hLen = horizBase + extra
-            val x3 = if (goLeft) x2 - hLen else x2 + hLen
-            val y3 = y2
+            val path = Path().apply { moveTo(sx, sy); lineTo(bx, by); lineTo(ex, by) }
+            drawPath(path, color.copy(alpha = 0.6f), style = Stroke(2f))
 
-            // 拉线
-            drawLine(color, Offset(x1, y1), Offset(x2, y2), strokeWidth = 1.2f)
-            drawLine(color.copy(alpha = 0.6f), Offset(x2, y2), Offset(x3, y3), strokeWidth = 1.2f)
-
-            // Y 错开
-            var adjustedY = y3
-            for ((lo, hi) in occupied) {
-                if (adjustedY in lo..hi || kotlin.math.abs(adjustedY - lo) < staggerH * 0.5f) {
-                    adjustedY = hi + staggerH * 0.8f
-                }
+            val textP = android.graphics.Paint().apply {
+                this.color = android.graphics.Color.parseColor("#475569")
+                textSize = 7.sp.toPx()
+                typeface = android.graphics.Typeface.DEFAULT_BOLD
+                isAntiAlias = true
+                textAlign = if (isRight) android.graphics.Paint.Align.LEFT
+                           else android.graphics.Paint.Align.RIGHT
             }
-            val textH = labelPaint.textSize * 1.4f
-            occupied.add(adjustedY - textH * 0.6f to adjustedY + textH * 0.6f)
-
-            val clampedX = x3.coerceIn(4f, w - 4f)
-            val clampedY = adjustedY.coerceIn(staggerH, h - staggerH)
-
-            val labelText = "$name $pct%"
-            val textW = labelPaint.measureText(labelText)
-            val maxW = with(density) { 44.dp.toPx() }
-            if (textW > maxW) {
-                labelPaint.textAlign = android.graphics.Paint.Align.CENTER
-                drawContext.canvas.nativeCanvas.drawText(name, clampedX, clampedY, labelPaint)
-                drawContext.canvas.nativeCanvas.drawText("$pct%", clampedX,
-                    clampedY + with(density) { 12.dp.toPx() }, labelPaint)
-            } else {
-                labelPaint.textAlign = if (goLeft)
-                    android.graphics.Paint.Align.RIGHT else android.graphics.Paint.Align.LEFT
-                drawContext.canvas.nativeCanvas.drawText(labelText, clampedX, clampedY, labelPaint)
-            }
-            // 水平线接回段2终点（当y被错开时）
-            if (kotlin.math.abs(adjustedY - y3) > 2f) {
-                drawLine(color.copy(alpha = 0.4f), Offset(x3, y3), Offset(clampedX, adjustedY), strokeWidth = 1f)
-            }
+            val tx = if (isRight) ex + 6f else ex - 6f
+            val ty = by + (textP.textSize / 3f)
+            nc.drawText("$name $pct%", tx, ty, textP)
             start += sweep
         }
     }
