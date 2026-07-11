@@ -159,6 +159,8 @@ val DEFAULT_REPORT_ITEMS = listOf(
 @Serializable
 data class AppSettings(
     val reminderDays: Int = 7,
+    val reminderHour: Int = 9,
+    val reminderMinute: Int = 0,
     val showTotalDeposited: Boolean = true,
     val showAssetBalance: Boolean = true,
     val showTotalYield: Boolean = true,

@@ -412,20 +412,85 @@ private fun ReminderSettingsScreen(onBack: () -> Unit, settings: AppSettings, on
             shape = RoundedCornerShape(14.dp),
             colors = CardDefaults.cardColors(containerColor = Color.White),
             elevation = CardDefaults.cardElevation(defaultElevation = 0.5.dp)) {
-            Row(Modifier.fillMaxWidth().padding(14.dp), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-                Column(Modifier.weight(1f)) {
-                    Text("提前提醒天数", fontSize = 13.sp, fontWeight = FontWeight.W600, color = Color(0xFF1E293B))
-                    Text("到期前发送提醒", fontSize = 10.sp, color = Color(0xFF94A3B8))
+            Column(Modifier.padding(14.dp)) {
+                Row(
+                    Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Column(Modifier.weight(1f)) {
+                        Text("提前提醒天数", fontSize = 12.sp, fontWeight = FontWeight.W600, color = Color(0xFF1E293B))
+                        Spacer(Modifier.height(3.dp))
+                        Text("到期前发送提醒", fontSize = 9.sp, color = Color(0xFF94A3B8))
+                    }
+                    Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                        listOf(1, 3, 7).forEach { d ->
+                            FilterChip(selected = settings.reminderDays == d,
+                                onClick = { onSettingsChanged(settings.copy(reminderDays = d)) },
+                                label = { Text("${d}天", fontSize = 11.sp, fontWeight = FontWeight.W600) },
+                                shape = RoundedCornerShape(12.dp),
+                                colors = FilterChipDefaults.filterChipColors(
+                                    selectedContainerColor = Color(0xFF2563EB),
+                                    selectedLabelColor = Color.White,
+                                    containerColor = Color(0xFFF1F5F9),
+                                    labelColor = Color(0xFF64748B)))
+                        }
+                    }
                 }
-                Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                    listOf(7, 14, 30).forEach { d ->
-                        FilterChip(selected = settings.reminderDays == d,
-                            onClick = { onSettingsChanged(settings.copy(reminderDays = d)) },
-                            label = { Text("${d}天", fontSize = 11.sp, fontWeight = FontWeight.W600) },
-                            shape = RoundedCornerShape(12.dp),
-                            colors = FilterChipDefaults.filterChipColors(
-                                selectedContainerColor = Color(0xFF2563EB), selectedLabelColor = Color.White,
-                                containerColor = Color(0xFFF1F5F9), labelColor = Color(0xFF64748B)))
+                Spacer(Modifier.height(12.dp))
+                HorizontalDivider(color = Color(0xFFF1F5F9), thickness = 1.dp)
+                Spacer(Modifier.height(12.dp))
+                // 时间选择
+                Text("提醒时间", fontSize = 12.sp, fontWeight = FontWeight.W600, color = Color(0xFF1E293B))
+                Spacer(Modifier.height(3.dp))
+                Text("选择每天提醒的具体时间", fontSize = 9.sp, color = Color(0xFF94A3B8))
+                Spacer(Modifier.height(10.dp))
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.Center,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    // 小时选择
+                    val hrList = (0..23).toList()
+                    var hrExpanded by remember { mutableStateOf(false) }
+                    Box {
+                        OutlinedButton(onClick = { hrExpanded = true },
+                            shape = RoundedCornerShape(10.dp),
+                            border = BorderStroke(1.dp, Color(0xFFE2E8F0)),
+                            colors = ButtonDefaults.outlinedButtonColors(contentColor = Color(0xFF1E293B))) {
+                            Text("${settings.reminderHour}时", fontSize = 13.sp)
+                        }
+                        DropdownMenu(expanded = hrExpanded, onDismissRequest = { hrExpanded = false }) {
+                            hrList.forEach { h ->
+                                DropdownMenuItem(text = { Text("${h} 时", fontSize = 13.sp) },
+                                    onClick = {
+                                        onSettingsChanged(settings.copy(reminderHour = h))
+                                        hrExpanded = false
+                                    })
+                            }
+                        }
+                    }
+                    Text("：", fontSize = 16.sp, color = Color(0xFF1E293B),
+                        modifier = Modifier.padding(horizontal = 6.dp))
+                    // 分钟选择
+                    val minList = listOf(0, 15, 30, 45)
+                    var minExpanded by remember { mutableStateOf(false) }
+                    Box {
+                        OutlinedButton(onClick = { minExpanded = true },
+                            shape = RoundedCornerShape(10.dp),
+                            border = BorderStroke(1.dp, Color(0xFFE2E8F0)),
+                            colors = ButtonDefaults.outlinedButtonColors(contentColor = Color(0xFF1E293B))) {
+                            Text("${settings.reminderMinute}分", fontSize = 13.sp)
+                        }
+                        DropdownMenu(expanded = minExpanded, onDismissRequest = { minExpanded = false }) {
+                            minList.forEach { m ->
+                                DropdownMenuItem(text = { Text("${m} 分", fontSize = 13.sp) },
+                                    onClick = {
+                                        onSettingsChanged(settings.copy(reminderMinute = m))
+                                        minExpanded = false
+                                    })
+                            }
+                        }
                     }
                 }
             }

@@ -17,6 +17,7 @@ import com.example.zengchubao.ui.screens.detail.DepositDetailScreen
 import com.example.zengchubao.ui.screens.breakdown.EarningsBreakdownScreen
 import com.example.zengchubao.ui.screens.breakdown.BreakdownMode
 import com.example.zengchubao.storage.LocalFileManager
+import com.example.zengchubao.notification.NotificationHelper
 import com.example.zengchubao.model.*
 import androidx.compose.animation.*
 import androidx.compose.animation.core.tween
@@ -33,6 +34,7 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
+        NotificationHelper.initChannel(this@MainActivity)
         setContent {
             ZengChuBaoTheme {
                 ZengChuBaoApp()
@@ -80,7 +82,16 @@ fun ZengChuBaoApp() {
         products = storage.getAllProducts()
         archiveRecords = storage.getAllArchiveRecords()
         settings = storage.getSettings()
+        // 初始调度通知
+        NotificationHelper.scheduleAll(context, settings)
         isInitialized = true
+    }
+
+    // 设置或存单变化时重新调度通知
+    LaunchedEffect(settings, deposits) {
+        if (isInitialized) {
+            NotificationHelper.scheduleAll(context, settings)
+        }
     }
 
     // ── 刷新数据（不阻塞主线程） ──
@@ -187,7 +198,9 @@ fun ZengChuBaoApp() {
                                         settings = it
                                         scope.launch { withContext(Dispatchers.IO) { storage.saveSettings(it) } }
                                     },
-                                    onDepositsChanged = { deposits = it },
+                                    onDepositsChanged = {
+                                        deposits = it
+                                    },
                                     onArchiveRecordsChanged = { archiveRecords = it }
                                 )
                             }
