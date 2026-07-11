@@ -329,27 +329,41 @@ private fun DonutChartWithLabels(
             startAngle += sweep
         }
         drawCircle(Color.White, innerR, Offset(cx, cy))
+    }
 
-        // ── 2. 中心文字 ──
+    // 中心文字用 Compose Text 叠放（v3.39 风格）
+    Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxSize()) {
+        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+            Text(
+                fmt(totalBalance),
+                fontSize = 9.sp,
+                fontWeight = FontWeight.Bold,
+                color = Color(0xFF1E293B),
+                lineHeight = 11.sp
+            )
+            Spacer(Modifier.height(6.dp))
+            Text(
+                "资产总额",
+                fontSize = 8.sp,
+                color = Color(0xFF94A3B8),
+                fontWeight = FontWeight.W500,
+                lineHeight = 10.sp
+            )
+        }
+    }
+
+    // 折线 + 标签（独立 Canvas）
+    Canvas(modifier = Modifier.fillMaxSize()) {
+        val cx = size.width / 2f; val cy = size.height / 2f
+        val total = items.sumOf { it.second }
+        if (total <= 0) return@Canvas
         val nc = drawContext.canvas.nativeCanvas
-        val valP = android.graphics.Paint().apply {
-            color = android.graphics.Color.parseColor("#1E293B")
-            textSize = 9.sp.toPx(); typeface = android.graphics.Typeface.DEFAULT_BOLD
-            isAntiAlias = true; textAlign = android.graphics.Paint.Align.CENTER
-        }
-        val lblP = android.graphics.Paint().apply {
-            color = android.graphics.Color.parseColor("#94A3B8")
-            textSize = 8.sp.toPx()
-            isAntiAlias = true; textAlign = android.graphics.Paint.Align.CENTER
-        }
-        nc.drawText(fmt(totalBalance), cx, cy - 2f, valP)
-        nc.drawText("资产总额", cx, cy + 16f, lblP)
-
-        // ── 3. 折线 + 标签 ──
+        val ringOuterR = outerR + with(density) { 4.dp.toPx() }
         val occupiedYs = mutableListOf<Pair<Float, Float>>()
         val staggerH = with(density) { 12.sp.toPx() }
         val rowGap = with(density) { 2.dp.toPx() }
         val margin = with(density) { 4.dp.toPx() }
+        val labelGapR = with(density) { 12.dp.toPx() }
 
         var start = -90f
         items.forEach { (name, value, color) ->
@@ -359,7 +373,7 @@ private fun DonutChartWithLabels(
             val cosR = cos(rad); val sinR = sin(rad)
             val pct = "%.1f".format(value / total * 100)
 
-            val sR = outerR + with(density) { 4.dp.toPx() }
+            val sR = ringOuterR
             val sx = cx + sR * cosR; val sy = cy + sR * sinR
             val bR = sR + radialExt
             val bx = cx + bR * cosR; val by = cy + bR * sinR
@@ -369,17 +383,17 @@ private fun DonutChartWithLabels(
             val path = Path().apply { moveTo(sx, sy); lineTo(bx, by); lineTo(ex, by) }
             drawPath(path, color.copy(alpha = 0.6f), style = Stroke(2f))
 
-            // Y 错开
             var adjustedY = by
             for ((lo, hi) in occupiedYs) {
                 if (kotlin.math.abs(adjustedY - lo) < staggerH || kotlin.math.abs(adjustedY - hi) < staggerH) {
                     adjustedY = hi + staggerH + rowGap
                 }
             }
-            val lineH = with(density) { 11.sp.toPx() }
-            occupiedYs.add(adjustedY - lineH * 0.5f to adjustedY + lineH * 1.5f)
+            val lineH = with(density) { 10.sp.toPx() }
+            occupiedYs.add(adjustedY - lineH * 0.3f to adjustedY + lineH * 1.7f + rowGap)
 
-            // 标签换行：银行名 / 占比
+            val labelAnchorX = cx + (ringOuterR + labelGapR) * cosR
+
             val nameP = android.graphics.Paint().apply {
                 this.color = android.graphics.Color.parseColor("#475569")
                 textSize = 7.sp.toPx()
@@ -395,19 +409,18 @@ private fun DonutChartWithLabels(
                 textAlign = if (isRight) android.graphics.Paint.Align.LEFT
                            else android.graphics.Paint.Align.RIGHT
             }
+            // (includeFontPadding not directly settable on Android Paint; rely on lineHeight)
+
             val nameW = nameP.measureText(name)
             val pctW = pctP.measureText("$pct%")
             val lineW = maxOf(nameW, pctW)
             val tx = if (isRight) {
-                (ex + margin).coerceAtMost(size.width - lineW - margin)
+                (labelAnchorX + margin).coerceAtMost(size.width - lineW - margin)
             } else {
-                (ex - margin).coerceAtLeast(lineW + margin)
+                (labelAnchorX - margin).coerceAtLeast(lineW + margin)
             }
-            val ty1 = adjustedY
-            val ty2 = adjustedY + lineH + rowGap
-            nc.drawText(name, tx, ty1, nameP)
-            nc.drawText("$pct%", tx, ty2, pctP)
-
+            nc.drawText(name, tx, adjustedY, nameP)
+            nc.drawText("$pct%", tx, adjustedY + lineH + rowGap, pctP)
             start += sweep
         }
     }
