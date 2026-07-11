@@ -19,6 +19,7 @@ import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.nativeCanvas
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.zengchubao.model.*
@@ -382,16 +383,23 @@ fun DepositDetailScreen(
     }
 }
 
-// ── 距到期圆环（参考图：数字在环外右，"天"在环内，标签在顶部）──
+// ── 距到期圆环（参考图：标签距到期→环(断弧)+天→数字 70）──
 @Composable
 private fun DaysRing(daysLeft: Int, totalDays: Int) {
     val pct = if (totalDays > 0) (daysLeft.toFloat() / totalDays).coerceIn(0f, 1f) else 1f
-    val r = 22f; val strokeW = 4f
-    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+    val ringSizeDp = 56.dp
+    val strokeW = with(LocalDensity.current) { 4.dp.toPx() }
+    val r = with(LocalDensity.current) { ringSizeDp.toPx() / 2f } - strokeW / 2f
+    Column(
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(2.dp)
+    ) {
         Text("距到期", fontSize = 10.sp, color = Gray400)
-        Spacer(Modifier.height(4.dp))
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Canvas(modifier = Modifier.size(52.dp)) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(4.dp)
+        ) {
+            Canvas(modifier = Modifier.size(ringSizeDp)) {
                 val cx = size.width / 2; val cy = size.height / 2
                 drawCircle(Color(0xFFE8ECF4), r, Offset(cx, cy), style = Stroke(strokeW, cap = StrokeCap.Round))
                 drawArc(BrandBlue, -90f, 360f * pct, false,
@@ -406,8 +414,7 @@ private fun DaysRing(daysLeft: Int, totalDays: Int) {
                     drawText("天", cx, cy + 3f, p)
                 }
             }
-            Spacer(Modifier.width(2.dp))
-            Text("$daysLeft", fontSize = 11.sp, fontWeight = FontWeight.SemiBold, color = BrandBlue)
+            Text("$daysLeft", fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = BrandBlue)
         }
     }
 }
