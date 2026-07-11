@@ -101,7 +101,8 @@ fun DepositDetailScreen(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                Surface(shape = RoundedCornerShape(999.dp), color = BrandBlueBg) {
+                Surface(shape = RoundedCornerShape(999.dp), color = BrandBlueBg,
+                    border = BorderStroke(0.6.dp, Color(0xFFE2E8F0))) {
                     Text(deposit.bankName, fontSize = 12.sp, fontWeight = FontWeight.Medium,
                         color = BrandBlue, modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp))
                 }
@@ -110,7 +111,8 @@ fun DepositDetailScreen(
                     ProductType.WEALTH_MGMT -> "理财产品"
                     ProductType.OTHER -> "其他"
                 }
-                Surface(shape = RoundedCornerShape(999.dp), color = Gray100) {
+                Surface(shape = RoundedCornerShape(999.dp), color = Gray100,
+                    border = BorderStroke(0.6.dp, Color(0xFFE2E8F0))) {
                     Text(typeLabel, fontSize = 12.sp, fontWeight = FontWeight.Medium,
                         color = Gray500, modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp))
                 }
@@ -122,7 +124,8 @@ fun DepositDetailScreen(
                     DepositStatus.EARLY_WITHDRAWN -> Triple("已支取", AmberBg, Amber600)
                     DepositStatus.ARCHIVED -> Triple("已归档", Gray100, Gray500)
                 }
-                Surface(shape = RoundedCornerShape(999.dp), color = statusBg) {
+                Surface(shape = RoundedCornerShape(999.dp), color = statusBg,
+                    border = BorderStroke(0.6.dp, Color(0xFFE2E8F0))) {
                     Text(statusLabel, fontSize = 12.sp, fontWeight = FontWeight.SemiBold,
                         color = statusColor, modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp))
                 }
@@ -155,7 +158,8 @@ fun DepositDetailScreen(
                 Surface(
                     modifier = Modifier.weight(1f),
                     shape = RoundedCornerShape(16.dp),
-                    color = BrandBlueBg
+                    color = BrandBlueBg,
+                    border = BorderStroke(0.6.dp, Color(0xFFE2E8F0))
                 ) {
                     Column(Modifier.padding(horizontal = 16.dp, vertical = 12.dp)) {
                         Text("当前资产余额", fontSize = 11.sp, color = Gray400)
@@ -166,7 +170,8 @@ fun DepositDetailScreen(
                 Surface(
                     modifier = Modifier.weight(1f),
                     shape = RoundedCornerShape(16.dp),
-                    color = Gray50
+                    color = Gray50,
+                    border = BorderStroke(0.6.dp, Color(0xFFE2E8F0))
                 ) {
                     Column(Modifier.padding(horizontal = 16.dp, vertical = 12.dp)) {
                         Text("已累计收益", fontSize = 11.sp, color = Gray400)
