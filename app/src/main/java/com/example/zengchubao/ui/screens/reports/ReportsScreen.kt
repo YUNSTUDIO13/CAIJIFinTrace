@@ -310,8 +310,8 @@ private fun DonutChartWithLabels(
     val radius = with(density) { 65.dp.toPx() }          // 圆环半径
     val strokeWidth = radius * 0.36f                      // 环宽
     val innerR = radius - strokeWidth
-    val lineExtension1 = with(density) { 12.dp.toPx() }   // 段1 径向延伸
-    val lineExtension2 = with(density) { 26.dp.toPx() }   // 段2 水平延伸
+    val lineExtension1 = with(density) { 8.dp.toPx() }    // 段1 径向延伸
+    val lineExtension2 = with(density) { 20.dp.toPx() }   // 段2 水平延伸
 
     Canvas(modifier = Modifier.fillMaxSize()) {
         val cx = size.width / 2f; val cy = size.height / 2f
@@ -374,6 +374,7 @@ private fun DonutChartWithLabels(
             val pctP = android.graphics.Paint().apply {
                 this.color = android.graphics.Color.parseColor("#94A3B8")
                 textSize = 7.sp.toPx()
+                typeface = android.graphics.Typeface.DEFAULT_BOLD
                 isAntiAlias = true
                 textAlign = if (isRightSide) android.graphics.Paint.Align.LEFT
                            else android.graphics.Paint.Align.RIGHT
