@@ -419,8 +419,8 @@ private fun DaysRing(daysLeft: Int, totalDays: Int) {
                         textSize = 8.sp.toPx()
                         isAntiAlias = true; textAlign = android.graphics.Paint.Align.CENTER
                     }
-                        drawText("$daysLeft", cx, cy - 4f, p)
-                    drawText("天", cx, cy + 24f, lbl)
+                        drawText("$daysLeft", cx, cy - 8f, p)
+                    drawText("天", cx, cy + 28f, lbl)
                 }
             }
         }

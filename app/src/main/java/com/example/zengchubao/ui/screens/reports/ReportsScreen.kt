@@ -316,11 +316,6 @@ private fun DonutChartWithLabels(
     val outerRpx = with(density) { 65.dp.toPx() }
     val strokeWpx = outerRpx * 0.36f
     val innerRpx = outerRpx - strokeWpx
-    val lineGap = with(density) { 4.dp.toPx() }
-    val lineLen = with(density) { 16.dp.toPx() }
-    val lineStart = outerRpx + lineGap
-    val lineEnd = lineStart + lineLen
-    val labelGap = with(density) { 6.dp.toPx() }
 
     Canvas(modifier = Modifier.fillMaxSize()) {
         val w = size.width
@@ -353,7 +348,7 @@ private fun DonutChartWithLabels(
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
             Text("资产总额", fontSize = 8.sp, color = Color(0xFF94A3B8), fontWeight = FontWeight.W500)
             Spacer(Modifier.height(2.dp))
-            Text(fmt(totalBalance), fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Color(0xFF1E293B))
+            Text(fmt(totalBalance), fontSize = 9.sp, fontWeight = FontWeight.Bold, color = Color(0xFF1E293B))
         }
     }
 }
@@ -366,10 +361,10 @@ private fun DonutLabels(
     density: androidx.compose.ui.unit.Density
 ) {
     val outerRpx = with(density) { 65.dp.toPx() }
-    val lineGap = with(density) { 4.dp.toPx() }
-    val lineLen = with(density) { 16.dp.toPx() }
+    val lineGap = with(density) { 10.dp.toPx() }
+    val lineLen = with(density) { 20.dp.toPx() }
     val lineEnd = outerRpx + lineGap + lineLen
-    val labelGap = with(density) { 6.dp.toPx() }
+    val labelGap = with(density) { 8.dp.toPx() }
 
     Canvas(modifier = Modifier.fillMaxSize()) {
         val w = size.width
