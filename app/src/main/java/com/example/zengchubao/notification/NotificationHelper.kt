@@ -110,18 +110,17 @@ object NotificationHelper {
         val alarmMgr = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
         val storage = LocalFileManager(context)
         val deposits = kotlinx.coroutines.runBlocking { storage.getAllDeposits() }
+        val flags = PendingIntent.FLAG_UPDATE_CURRENT or
+            if (Build.VERSION.SDK_INT >= 31) PendingIntent.FLAG_IMMUTABLE else 0
         deposits.forEach { dep ->
             val requestCode = dep.id.hashCode()
-            val intent = Intent(context, ReminderReceiver::class.java)
-            val flags = PendingIntent.FLAG_NO_CREATE or
-                if (Build.VERSION.SDK_INT >= 31) PendingIntent.FLAG_IMMUTABLE else 0
-            PendingIntent.getBroadcast(context, requestCode, intent, flags)?.cancel()
-            // 再用同一个 pending 取消闹钟
-            alarmMgr.cancel(
-                PendingIntent.getBroadcast(context, requestCode, intent,
-                    PendingIntent.FLAG_UPDATE_CURRENT or
-                        if (Build.VERSION.SDK_INT >= 31) PendingIntent.FLAG_IMMUTABLE else 0)
-            )
+            // 用与 scheduleOne 完全一致的 Intent 结构（含 extras）才能匹配到同一个 PendingIntent
+            val intent = Intent(context, ReminderReceiver::class.java).apply {
+                putExtra("title", "存单到期提醒")
+                putExtra("body", "")
+                putExtra("notify_id", requestCode)
+            }
+            alarmMgr.cancel(PendingIntent.getBroadcast(context, requestCode, intent, flags))
         }
     }
 }
