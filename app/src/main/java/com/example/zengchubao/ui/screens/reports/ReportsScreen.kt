@@ -316,12 +316,12 @@ private fun DonutChartWithLabels(
         val strokeW = outerR * 0.32f
         val innerR = outerR - strokeW
         val lineStartR = outerR + 4f
-        val lineEndR = outerR + 40f
+        val lineEndR = outerR + 56f
+        val labelR = lineEndR + 10f
 
         val total = items.sumOf { it.second }
         if (total <= 0) return@BoxWithConstraints
 
-        // ── Canvas 画圆环 + 拉线 ──
         Canvas(modifier = Modifier.fillMaxSize()) {
             var startAngle = -90f
             val segs = mutableListOf<Triple<Float, Float, Color>>()
@@ -344,44 +344,37 @@ private fun DonutChartWithLabels(
             drawCircle(Color.White, innerR, Offset(cx, cy))
         }
 
-        // ── 中心文字（缩小一倍）──
+        // 中心文字（资产总额与值间距 6dp）
         Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxSize()) {
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
                 Text("资产总额", fontSize = 6.sp, color = Color(0xFF94A3B8), fontWeight = FontWeight.W500)
+                Spacer(Modifier.height(6.dp))
                 Text(fmt(totalBalance), fontSize = 8.sp, fontWeight = FontWeight.Bold, color = Color(0xFF1E293B))
             }
         }
 
-        // ── 标签（换行：银行名 + 占比% 分两行）──
+        // 标签：银行名 + 占比（间距 3dp）换行展示
         var start = -90f
         items.forEach { (name, value, _) ->
             val sweep = ((value / total * 360f).coerceAtLeast(1.5)).toFloat()
             val mid = start + sweep / 2f
             val rad = Math.toRadians(mid.toDouble()).toFloat()
-            val lr = lineEndR + 8f
-            val lx = cx + lr * cos(rad)
-            val ly = cy + lr * sin(rad)
+            val lx = cx + labelR * cos(rad)
+            val ly = cy + labelR * sin(rad)
             val pct = value / total * 100
             val isLeft = cos(rad) < 0
             val xDp = with(density) { (lx / density.density).dp }
             val yDp = with(density) { (ly / density.density).dp - 14.dp }
 
-            // 银行名在上，占比在下
             Column(
                 modifier = Modifier.offset(
-                    x = if (isLeft) xDp - 70.dp else xDp - 4.dp,
+                    x = if (isLeft) xDp - 56.dp else xDp - 4.dp,
                     y = yDp
                 )
             ) {
-                Text(
-                    text = name,
-                    fontSize = 8.sp, color = Color(0xFF475569), fontWeight = FontWeight.W500
-                )
-                Text(
-                    text = "${"%.1f".format(pct)}%",
-                    fontSize = 8.sp, color = Color(0xFF475569), fontWeight = FontWeight.W500,
-                    modifier = Modifier.padding(top = 3.dp)
-                )
+                Text(name, fontSize = 8.sp, color = Color(0xFF475569), fontWeight = FontWeight.W500)
+                Spacer(Modifier.height(3.dp))
+                Text("${"%.1f".format(pct)}%", fontSize = 8.sp, color = Color(0xFF475569), fontWeight = FontWeight.W500)
             }
             start += sweep
         }
@@ -418,42 +411,57 @@ private fun BankDetailItem(
     )
     val iconSize = 34.dp
 
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        // 左侧 icon
-        BankIcon(bankName = bankName, color = color, size = iconSize)
-        Spacer(Modifier.width(10.dp))
-        // 银行名 + 占比 整组（不换行）
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Text(
-                bankName, fontSize = 12.sp, fontWeight = FontWeight.W700,
-                color = Color(0xFF1E293B), maxLines = 1
-            )
-            Spacer(Modifier.width(6.dp))
-            Text(
-                "${"%.1f".format(percentage)}%", fontSize = 9.sp, color = Color(0xFF94A3B8),
-                maxLines = 1
-            )
+    Box(modifier = Modifier.fillMaxWidth()) {
+        // 左侧 icon（垂直居中于两行）
+        Box(
+            modifier = Modifier
+                .size(iconSize)
+                .align(Alignment.CenterStart),
+            contentAlignment = Alignment.Center
+        ) {
+            BankIconBox(bankName = bankName, color = color, size = iconSize)
         }
-        Spacer(Modifier.weight(1f))
-        // 余额
-        Text(fmt(balance), fontSize = 12.sp, fontWeight = FontWeight.W700, color = Color(0xFF1E293B), maxLines = 1)
+        // 右侧内容
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(start = iconSize + 10.dp)
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(bankName, fontSize = 12.sp, fontWeight = FontWeight.W700, color = Color(0xFF1E293B), maxLines = 1)
+                    Spacer(Modifier.width(3.dp))
+                    Text("${"%.1f".format(percentage)}%", fontSize = 9.sp, color = Color(0xFF94A3B8), maxLines = 1)
+                }
+                Spacer(Modifier.weight(1f))
+                Text(fmt(balance), fontSize = 12.sp, fontWeight = FontWeight.W700, color = Color(0xFF1E293B), maxLines = 1)
+            }
+            Spacer(Modifier.height(5.dp))
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Box(Modifier.weight(1f).height(4.dp).background(Color(0xFFF1F5F9), RoundedCornerShape(2.dp))) {
+                    Box(Modifier.fillMaxHeight().fillMaxWidth(barAnim).background(color, RoundedCornerShape(2.dp)))
+                }
+                Spacer(Modifier.width(12.dp))
+                Text("${count}笔", fontSize = 9.sp, color = Color(0xFF94A3B8))
+            }
+        }
     }
-    Spacer(Modifier.height(2.dp))
-    // 能量条 + 笔数（与图标对齐，start padding = iconSize + 10dp + 4dp）
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(start = iconSize + 10.dp),
-        verticalAlignment = Alignment.CenterVertically
+}
+
+@Composable
+private fun BankIconBox(bankName: String, color: Color, size: androidx.compose.ui.unit.Dp) {
+    val firstChar = bankName.firstOrNull()?.toString() ?: "?"
+    Box(
+        modifier = Modifier.size(size).clip(CircleShape).background(color),
+        contentAlignment = Alignment.Center
     ) {
-        Box(Modifier.weight(1f).height(4.dp).background(Color(0xFFF1F5F9), RoundedCornerShape(2.dp))) {
-            Box(Modifier.fillMaxHeight().fillMaxWidth(barAnim).background(color, RoundedCornerShape(2.dp)))
-        }
-        Spacer(Modifier.width(12.dp))
-        Text("${count}笔", fontSize = 9.sp, color = Color(0xFF94A3B8))
+        Text(firstChar, fontSize = 13.sp, fontWeight = FontWeight.Bold, color = Color.White)
     }
 }
 
