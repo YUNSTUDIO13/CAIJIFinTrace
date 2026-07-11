@@ -461,21 +461,5 @@ fun Modifier.heroGradient() = this.then(
             radius = w * 0.16f,
             center = Offset(w * 0.76f, h * 0.95f))
 
-        // Figma 金色弧线：r=32 stroke 1.5 dasharray 60 140 rotate(-60)
-        val cx = w * 0.82f
-        val cy = h * 0.35f
-        val arcR = w * 0.09f
-        drawCircle(
-            color = Color(0x40C8953A),
-            radius = arcR,
-            center = Offset(cx, cy),
-            style = Stroke(width = 1.2.dp.toPx()))
-        drawArc(
-            color = Color(0x80C8953A),
-            startAngle = 30f,
-            sweepAngle = 108f,
-            useCenter = false,
-            topLeft = Offset(cx - arcR, cy - arcR),
-            size = Size(arcR * 2, arcR * 2),
-            style = Stroke(width = 1.5.dp.toPx(), cap = StrokeCap.Round))
+        // Figma 金色弧线：已移除
     })
