@@ -419,8 +419,8 @@ private fun DaysRing(daysLeft: Int, totalDays: Int) {
                         textSize = 8.sp.toPx()
                         isAntiAlias = true; textAlign = android.graphics.Paint.Align.CENTER
                     }
-                    drawText("$daysLeft", cx, cy + 2f, p)
-                    drawText("天", cx, cy + 12f, lbl)
+                        drawText("$daysLeft", cx, cy - 4f, p)
+                    drawText("天", cx, cy + 18f, lbl)
                 }
             }
         }
@@ -516,8 +516,10 @@ fun EarlyWithdrawalSheet(
                 .verticalScroll(rememberScrollState())
                 .clickable { /* 拦截冒泡 */ }
                 .padding(horizontal = 20.dp)
-                .padding(bottom = 32.dp)
+                .padding(top = 8.dp, bottom = 32.dp)
         ) {
+            // 状态栏占位
+            Spacer(Modifier.height(WindowInsets.statusBars.asPaddingValues().calculateTopPadding()))
             // 顶部 drag handle - 受 sheet 展开比例控制
             Box(
                 modifier = Modifier
