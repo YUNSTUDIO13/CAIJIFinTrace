@@ -257,11 +257,16 @@ private fun BankDistributionSection(
             }
         } else {
             // Donut 环形图
-            Box(modifier = Modifier.fillMaxWidth().height(260.dp), contentAlignment = Alignment.Center) {
+            Box(modifier = Modifier.fillMaxWidth().height(220.dp), contentAlignment = Alignment.Center) {
                 DonutChartWithLabels(
                     items = donutItems,
                     totalBalance = totalBalance,
                     showAnim = showAnim
+                )
+                DonutLabels(
+                    items = donutItems,
+                    totalBalance = totalBalance,
+                    density = LocalDensity.current
                 )
             }
 
@@ -341,37 +346,51 @@ private fun DonutChartWithLabels(
 
         // ── 2. 中心白圆 ──
         drawCircle(Color.White, innerRpx, Offset(cx, cy))
+    }
 
-        // ── 3. 中心文字 ──
-        val nc = drawContext.canvas.nativeCanvas
-        val centerLabel = android.graphics.Paint().apply {
-            color = android.graphics.Color.parseColor("#94A3B8")
-            textSize = 8.sp.toPx()
-            isAntiAlias = true; textAlign = android.graphics.Paint.Align.CENTER
+    // ── 中心文字（Compose Text 叠加，避免 nativeCanvas 重叠）──
+    Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxSize()) {
+        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+            Text("资产总额", fontSize = 8.sp, color = Color(0xFF94A3B8), fontWeight = FontWeight.W500)
+            Spacer(Modifier.height(4.dp))
+            Text(fmt(totalBalance), fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Color(0xFF1E293B))
         }
-        val centerValue = android.graphics.Paint().apply {
-            color = android.graphics.Color.parseColor("#1E293B")
-            textSize = 11.sp.toPx()
-            typeface = android.graphics.Typeface.DEFAULT_BOLD
-            isAntiAlias = true; textAlign = android.graphics.Paint.Align.CENTER
-        }
-        nc.drawText("资产总额", cx, cy - 4f, centerLabel)
-        nc.drawText(fmt(totalBalance), cx, cy + 22f, centerValue)
+    }
+}
 
-        // ── 4. 拉线 + 标签（同行展示，若太宽自动换行）──
+// ── 标签 Canvas（独立一层，与圆环 Canvas 同坐标系）──
+@Composable
+private fun DonutLabels(
+    items: List<Triple<String, Double, Color>>,
+    totalBalance: Double,
+    density: androidx.compose.ui.unit.Density
+) {
+    val outerRpx = with(density) { 65.dp.toPx() }
+    val lineGap = with(density) { 4.dp.toPx() }
+    val lineLen = with(density) { 16.dp.toPx() }
+    val lineEnd = outerRpx + lineGap + lineLen
+    val labelGap = with(density) { 6.dp.toPx() }
+
+    Canvas(modifier = Modifier.fillMaxSize()) {
+        val w = size.width
+        val h = size.height
+        val cx = w / 2f
+        val cy = h / 2f
+
+        val total = items.sumOf { it.second }
+        if (total <= 0) return@Canvas
+
         var start = -90f
         items.forEach { (name, value, color) ->
             val sweep = ((value / total * 360f).coerceAtLeast(1.5)).toFloat()
             val mid = start + sweep / 2f
             val rad = Math.toRadians(mid.toDouble()).toFloat()
             val cosR = cos(rad); val sinR = sin(rad)
-            val sx = cx + lineStart * cosR; val sy = cy + lineStart * sinR
+            val sx = cx + (outerRpx + lineGap) * cosR; val sy = cy + (outerRpx + lineGap) * sinR
             val ex = cx + lineEnd * cosR; val ey = cy + lineEnd * sinR
 
-            // 拉线
             drawLine(color, Offset(sx, sy), Offset(ex, ey), strokeWidth = 1.5f)
 
-            // 标签文本
             val pct = "%.1f".format(value / total * 100)
             val labelText = "$name $pct%"
             val labelPaint = android.graphics.Paint().apply {
@@ -379,24 +398,18 @@ private fun DonutChartWithLabels(
                 textSize = 5.sp.toPx()
                 isAntiAlias = true
             }
-
-            // 标签锚点在拉线尾端+gap
             val lx = cx + (lineEnd + labelGap) * cosR
             val ly = cy + (lineEnd + labelGap) * sinR
             val textW = labelPaint.measureText(labelText)
-
-            // 自动换行：文本宽 > 40dp
             val maxW = with(density) { 50.dp.toPx() }
             if (textW > maxW) {
-                // 两行：银行名 / 占比%
                 labelPaint.textAlign = android.graphics.Paint.Align.CENTER
-                nc.drawText(name, lx, ly, labelPaint)
-                nc.drawText("$pct%", lx, ly + with(density) { 12.dp.toPx() }, labelPaint)
+                drawContext.canvas.nativeCanvas.drawText(name, lx, ly, labelPaint)
+                drawContext.canvas.nativeCanvas.drawText("$pct%", lx, ly + with(density) { 12.dp.toPx() }, labelPaint)
             } else {
-                // 单行
                 val align = if (cosR < 0) android.graphics.Paint.Align.RIGHT else android.graphics.Paint.Align.LEFT
                 labelPaint.textAlign = align
-                nc.drawText(labelText, lx, ly, labelPaint)
+                drawContext.canvas.nativeCanvas.drawText(labelText, lx, ly, labelPaint)
             }
             start += sweep
         }
@@ -452,13 +465,13 @@ private fun BankDetailItem(
                 Spacer(Modifier.weight(1f))
                 Text(fmt(balance), fontSize = 12.sp, fontWeight = FontWeight.W700, color = Color(0xFF1E293B), maxLines = 1)
             }
-            Spacer(Modifier.height(2.dp))
+            Spacer(Modifier.height(1.dp))
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Box(Modifier.weight(1f).height(2.dp).background(Color(0xFFF1F5F9))) {
-                    Box(Modifier.fillMaxHeight().fillMaxWidth(barAnim).background(color))
+                Box(Modifier.weight(1f).height(4.dp).background(Color(0xFFF1F5F9), RoundedCornerShape(2.dp))) {
+                    Box(Modifier.fillMaxHeight().fillMaxWidth(barAnim).background(color, RoundedCornerShape(2.dp)))
                 }
                 Spacer(Modifier.width(8.dp))
                 Text("${count}笔", fontSize = 9.sp, color = Color(0xFF94A3B8))

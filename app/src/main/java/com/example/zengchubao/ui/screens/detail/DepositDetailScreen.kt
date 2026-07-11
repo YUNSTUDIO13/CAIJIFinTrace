@@ -419,8 +419,8 @@ private fun DaysRing(daysLeft: Int, totalDays: Int) {
                         textSize = 8.sp.toPx()
                         isAntiAlias = true; textAlign = android.graphics.Paint.Align.CENTER
                     }
-                        drawText("$daysLeft", cx, cy - 10f, p)
-                    drawText("天", cx, cy + 26f, lbl)
+                        drawText("$daysLeft", cx, cy - 12f, p)
+                    drawText("天", cx, cy + 28f, lbl)
                 }
             }
         }
@@ -501,30 +501,32 @@ fun EarlyWithdrawalSheet(
     val normalMaturityInterest = deposit.maturityAmount - deposit.principal
     val lossAmount = normalMaturityInterest - result.interest
 
-    val sheetState = rememberModalBottomSheetState(
-        skipPartiallyExpanded = false,
-        confirmValueChange = { value ->
-            if (value == SheetValue.Hidden) {
-                onDismiss()
-                false // 不让 sheet 自己隐藏，由 onDismiss 触发
-            } else true
-        }
-    )
-
-    ModalBottomSheet(
+    // 全屏弹窗（替代 BottomSheet）
+    androidx.compose.ui.window.Dialog(
         onDismissRequest = onDismiss,
-        sheetState = sheetState,
-        shape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp),
-        containerColor = Color.White,
-        dragHandle = { /* 无 drag handle */ }
+        properties = androidx.compose.ui.window.DialogProperties(usePlatformDefaultWidth = false)
     ) {
-        Column(
+        Box(
             modifier = Modifier
-                .fillMaxWidth()
-                .verticalScroll(rememberScrollState())
-                .padding(horizontal = 20.dp)
-                .padding(top = 12.dp, bottom = 32.dp)
+                .fillMaxSize()
+                .background(Color.White)
+                .statusBarsPadding()
         ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .verticalScroll(rememberScrollState())
+                    .padding(horizontal = 20.dp)
+                    .padding(bottom = 32.dp)
+            ) {
+                // 返回按钮 + 标题
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    IconButton(onClick = onDismiss, modifier = Modifier.size(36.dp)) {
+                        Icon(Icons.Filled.Close, "关闭", tint = Gray700, modifier = Modifier.size(20.dp))
+                    }
+                    Spacer(Modifier.width(4.dp))
+                    Text("提前支取模拟器", fontSize = 18.sp, fontWeight = FontWeight.SemiBold, color = Gray900)
+                }
             Text("提前支取模拟器", fontSize = 18.sp, fontWeight = FontWeight.SemiBold, color = Gray900)
             Spacer(Modifier.height(4.dp))
             Text("传统标准：定期存款提前支取部分一律按支取日活期挂牌利率计息，采用实际天数计算。算头不算尾。",
@@ -615,6 +617,7 @@ fun EarlyWithdrawalSheet(
                 ) { Text("确认支取", fontSize = 14.sp, fontWeight = FontWeight.SemiBold) }
             }
         }
+    }
     }
 
     if (showDatePicker) {
