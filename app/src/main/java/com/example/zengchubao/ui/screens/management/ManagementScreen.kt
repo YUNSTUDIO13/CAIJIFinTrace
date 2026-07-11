@@ -122,7 +122,7 @@ private fun ManageMainPage(onNavigate: (ManageSubPage) -> Unit) {
             iconBg = Color(0xFFFEF3C7), iconTint = Color(0xFFD97706)) { onNavigate(ManageSubPage.BANK_PRODUCT) }
         ModuleItem(icon = Icons.Outlined.Notifications, title = "到期提醒", subtitle = "提前到期提醒天数",
             iconBg = Color(0xFFFCE7F3), iconTint = Color(0xFFDB2777)) { onNavigate(ManageSubPage.REMINDER_SETTINGS) }
-        ModuleItem(icon = Icons.Outlined.BarChart, title = "数据报表", subtitle = "报表排序与展示开关",
+        ModuleItem(icon = Icons.Outlined.BarChart, title = "资产管理", subtitle = "报表排序与展示开关",
             iconBg = Color(0xFFF0FDF4), iconTint = Color(0xFF10B981)) { onNavigate(ManageSubPage.DATA_REPORT) }
         ModuleItem(icon = Icons.Outlined.Calculate, title = "公式计算", subtitle = "查看全部指标计算公式",
             iconBg = Color(0xFFFAF5FF), iconTint = Color(0xFF8B5CF6)) { onNavigate(ManageSubPage.FORMULA_CALC) }
@@ -441,7 +441,7 @@ private fun DataReportScreen(onBack: () -> Unit, settings: AppSettings, onSettin
     var items by remember(settings.reportItems) { mutableStateOf(settings.reportItems) }
 
     Column(modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(bottom = 90.dp)) {
-        SubPageTopBar("数据报表", onBack)
+        SubPageTopBar("资产管理", onBack)
 
         Text("拖拽右侧手柄可调整顺序，开关控制是否展示",
             fontSize = 11.sp, color = Color(0xFF94A3B8), modifier = Modifier.padding(start = 16.dp, end = 16.dp, bottom = 8.dp))
@@ -617,7 +617,7 @@ private fun FormulaCalcScreen(onBack: () -> Unit) {
         FormulaCard(
             title = "归档历史收益",
             formula = "Σ(归档存单 maturityAmount − 本金)",
-            desc = "所有已归档存单（ARCHIVED）的实际到期收益之和。\n仅在数据报表中展示，不可点击跳转"
+            desc = "所有已归档存单（ARCHIVED）的实际到期收益之和。\n仅在资产页面中展示，不可点击跳转"
         )
         FormulaCard(
             title = "累计收益（全量）",

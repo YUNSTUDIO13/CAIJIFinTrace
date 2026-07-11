@@ -121,7 +121,7 @@ fun ReportsScreen(
         modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(bottom = 90.dp)
     ) {
         // ── Figma 头部 ──
-        Text("数据报表", fontSize = 20.sp, fontWeight = FontWeight.Bold, color = Color(0xFF1E293B),
+        Text("资产", fontSize = 20.sp, fontWeight = FontWeight.Bold, color = Color(0xFF1E293B),
             modifier = Modifier.padding(start = 20.dp, end = 20.dp, top = 24.dp, bottom = 16.dp))
 
         // 按设置中 reportItems 的顺序与可见性渲染板块
