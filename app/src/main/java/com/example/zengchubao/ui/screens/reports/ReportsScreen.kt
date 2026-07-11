@@ -308,8 +308,8 @@ private fun DonutChartWithLabels(
     )
 
     val density = LocalDensity.current
-    val outerRpx = with(density) { 50.dp.toPx() }
-    val strokeWpx = outerRpx * 0.32f
+    val outerRpx = with(density) { 65.dp.toPx() }
+    val strokeWpx = outerRpx * 0.36f
     val innerRpx = outerRpx - strokeWpx
     val lineGap = with(density) { 4.dp.toPx() }
     val lineLen = with(density) { 16.dp.toPx() }
@@ -376,7 +376,7 @@ private fun DonutChartWithLabels(
             val labelText = "$name $pct%"
             val labelPaint = android.graphics.Paint().apply {
                 this.color = android.graphics.Color.parseColor("#475569")
-                textSize = 9.sp.toPx()
+                textSize = 5.sp.toPx()
                 isAntiAlias = true
             }
 

@@ -419,8 +419,8 @@ private fun DaysRing(daysLeft: Int, totalDays: Int) {
                         textSize = 8.sp.toPx()
                         isAntiAlias = true; textAlign = android.graphics.Paint.Align.CENTER
                     }
-                        drawText("$daysLeft", cx, cy - 4f, p)
-                    drawText("天", cx, cy + 18f, lbl)
+                        drawText("$daysLeft", cx, cy - 10f, p)
+                    drawText("天", cx, cy + 26f, lbl)
                 }
             }
         }
@@ -503,7 +503,12 @@ fun EarlyWithdrawalSheet(
 
     val sheetState = rememberModalBottomSheetState(
         skipPartiallyExpanded = false,
-        confirmValueChange = { it != SheetValue.Hidden }
+        confirmValueChange = { value ->
+            if (value == SheetValue.Hidden) {
+                onDismiss()
+                false // 不让 sheet 自己隐藏，由 onDismiss 触发
+            } else true
+        }
     )
 
     ModalBottomSheet(
@@ -518,7 +523,7 @@ fun EarlyWithdrawalSheet(
                 .fillMaxWidth()
                 .verticalScroll(rememberScrollState())
                 .padding(horizontal = 20.dp)
-                .padding(bottom = 32.dp)
+                .padding(top = 12.dp, bottom = 32.dp)
         ) {
             Text("提前支取模拟器", fontSize = 18.sp, fontWeight = FontWeight.SemiBold, color = Gray900)
             Spacer(Modifier.height(4.dp))
