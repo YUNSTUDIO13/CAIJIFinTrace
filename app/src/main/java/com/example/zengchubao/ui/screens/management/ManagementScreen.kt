@@ -23,6 +23,7 @@ import androidx.compose.material.icons.filled.*
 import androidx.compose.material.icons.outlined.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.zIndex
@@ -615,19 +616,20 @@ private fun WheelPicker(
         }
     }
 
-    // 防递归：仅在用户滚动停止时吸附+通知，程序动画触发的忽略
-    var isAnimating by remember { mutableStateOf(false) }
-    LaunchedEffect(listState.isScrollInProgress) {
-        if (!listState.isScrollInProgress && !isAnimating) {
-            isAnimating = true
-            listState.animateScrollToItem(
-                (centerIndex - visibleCount / 2).coerceIn(0, items.size - 1)
-            )
-            onIndexChanged(centerIndex)
-            isAnimating = false
-        } else if (!listState.isScrollInProgress) {
-            isAnimating = false
-        }
+    // 仅用户滚动停止时通知父级（用 snapshotFlow 避免 LaunchedEffect 被取消）
+    LaunchedEffect(listState) {
+        snapshotFlow { listState.isScrollInProgress }
+            .collect { scrolling ->
+                if (!scrolling) {
+                    // 等一帧确保位置稳定，然后一次性同步吸附+通知
+                    kotlinx.coroutines.delay(50)
+                    if (!listState.isScrollInProgress) {
+                        val target = (centerIndex - visibleCount / 2).coerceIn(0, items.size - 1)
+                        listState.scrollToItem(target)
+                        onIndexChanged(centerIndex)
+                    }
+                }
+            }
     }
 
     Box(modifier = modifier.height(itemH * visibleCount)) {
