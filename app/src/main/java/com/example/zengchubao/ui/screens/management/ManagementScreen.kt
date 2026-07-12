@@ -11,6 +11,9 @@ import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.*
 import androidx.compose.foundation.gestures.detectDragGesturesAfterLongPress
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -25,6 +28,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.zIndex
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
@@ -408,6 +412,8 @@ private fun colorToHexString(color: Color): String {
 @Composable
 private fun ReminderSettingsScreen(onBack: () -> Unit, settings: AppSettings, onSettingsChanged: (AppSettings) -> Unit) {
     val context = androidx.compose.ui.platform.LocalContext.current
+    val density = LocalDensity.current
+
     // 通知权限
     val hasNotificationPermission = if (Build.VERSION.SDK_INT >= 33)
         android.content.pm.PackageManager.PERMISSION_GRANTED ==
@@ -430,6 +436,10 @@ private fun ReminderSettingsScreen(onBack: () -> Unit, settings: AppSettings, on
         }
     }
 
+    // 滚动选择器数据
+    val hours = (0..23).toList()
+    val minutes = (0..55 step 5).toList()
+
     Column(modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(bottom = 90.dp)) {
         SubPageTopBar("到期提醒", onBack)
 
@@ -438,82 +448,101 @@ private fun ReminderSettingsScreen(onBack: () -> Unit, settings: AppSettings, on
             colors = CardDefaults.cardColors(containerColor = Color.White),
             elevation = CardDefaults.cardElevation(defaultElevation = 0.5.dp)) {
             Column(Modifier.padding(14.dp)) {
+                // ── 开关行 ──
                 Row(
                     Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Column(Modifier.weight(1f)) {
-                        Text("提前提醒天数", fontSize = 12.sp, fontWeight = FontWeight.W600, color = Color(0xFF1E293B))
-                        Spacer(Modifier.height(3.dp))
-                        Text("到期前发送提醒", fontSize = 9.sp, color = Color(0xFF94A3B8))
-                    }
-                    Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                        listOf(1, 3, 7).forEach { d ->
-                            FilterChip(selected = settings.reminderDays == d,
-                                onClick = { onSettingsChanged(settings.copy(reminderDays = d)) },
-                                label = { Text("${d}天", fontSize = 11.sp, fontWeight = FontWeight.W600) },
-                                shape = RoundedCornerShape(12.dp),
-                                colors = FilterChipDefaults.filterChipColors(
-                                    selectedContainerColor = Color(0xFF2563EB),
-                                    selectedLabelColor = Color.White,
-                                    containerColor = Color(0xFFF1F5F9),
-                                    labelColor = Color(0xFF64748B)))
-                        }
-                    }
+                    Text("通知提醒", fontSize = 14.sp, fontWeight = FontWeight.W600, color = Color(0xFF1E293B))
+                    Switch(
+                        checked = settings.reminderEnabled,
+                        onCheckedChange = { enabled ->
+                            onSettingsChanged(settings.copy(reminderEnabled = enabled))
+                            if (enabled && !hasNotificationPermission) {
+                                permissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+                            }
+                        },
+                        colors = SwitchDefaults.colors(
+                            checkedThumbColor = Color.White,
+                            checkedTrackColor = Color(0xFF2563EB),
+                            uncheckedThumbColor = Color.White,
+                            uncheckedTrackColor = Color(0xFFE2E8F0)
+                        )
+                    )
                 }
-                Spacer(Modifier.height(12.dp))
-                HorizontalDivider(color = Color(0xFFF1F5F9), thickness = 1.dp)
-                Spacer(Modifier.height(12.dp))
-                // 时间选择
-                Text("提醒时间", fontSize = 12.sp, fontWeight = FontWeight.W600, color = Color(0xFF1E293B))
-                Spacer(Modifier.height(3.dp))
-                Text("选择每天提醒的具体时间", fontSize = 9.sp, color = Color(0xFF94A3B8))
-                Spacer(Modifier.height(10.dp))
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.Center,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    // 小时选择
-                    val hrList = (0..23).toList()
-                    var hrExpanded by remember { mutableStateOf(false) }
-                    Box {
-                        OutlinedButton(onClick = { hrExpanded = true },
-                            shape = RoundedCornerShape(10.dp),
-                            border = BorderStroke(1.dp, Color(0xFFE2E8F0)),
-                            colors = ButtonDefaults.outlinedButtonColors(contentColor = Color(0xFF1E293B))) {
-                            Text("${settings.reminderHour}时", fontSize = 13.sp)
-                        }
-                        DropdownMenu(expanded = hrExpanded, onDismissRequest = { hrExpanded = false }) {
-                            hrList.forEach { h ->
-                                DropdownMenuItem(text = { Text("${h} 时", fontSize = 13.sp) },
-                                    onClick = {
-                                        onSettingsChanged(settings.copy(reminderHour = h))
-                                        hrExpanded = false
-                                    })
+
+                // ── 展开内容 ──
+                AnimatedVisibility(visible = settings.reminderEnabled) {
+                    Column {
+                        Spacer(Modifier.height(12.dp))
+                        HorizontalDivider(color = Color(0xFFF1F5F9), thickness = 1.dp)
+                        Spacer(Modifier.height(12.dp))
+
+                        // 到期前提醒 + 天数
+                        Row(
+                            Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text("到期前提醒", fontSize = 12.sp, fontWeight = FontWeight.W600, color = Color(0xFF1E293B))
+                            Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                                listOf(1, 3, 7).forEach { d ->
+                                    FilterChip(selected = settings.reminderDays == d,
+                                        onClick = { onSettingsChanged(settings.copy(reminderDays = d)) },
+                                        label = { Text("${d}天", fontSize = 11.sp, fontWeight = FontWeight.W600) },
+                                        shape = RoundedCornerShape(12.dp),
+                                        colors = FilterChipDefaults.filterChipColors(
+                                            selectedContainerColor = Color(0xFF2563EB),
+                                            selectedLabelColor = Color.White,
+                                            containerColor = Color(0xFFF1F5F9),
+                                            labelColor = Color(0xFF64748B)))
+                                }
                             }
                         }
-                    }
-                    Text("：", fontSize = 16.sp, color = Color(0xFF1E293B),
-                        modifier = Modifier.padding(horizontal = 6.dp))
-                    // 分钟选择
-                    val minList = listOf(0, 15, 30, 45)
-                    var minExpanded by remember { mutableStateOf(false) }
-                    Box {
-                        OutlinedButton(onClick = { minExpanded = true },
-                            shape = RoundedCornerShape(10.dp),
-                            border = BorderStroke(1.dp, Color(0xFFE2E8F0)),
-                            colors = ButtonDefaults.outlinedButtonColors(contentColor = Color(0xFF1E293B))) {
-                            Text("${settings.reminderMinute}分", fontSize = 13.sp)
-                        }
-                        DropdownMenu(expanded = minExpanded, onDismissRequest = { minExpanded = false }) {
-                            minList.forEach { m ->
-                                DropdownMenuItem(text = { Text("${m} 分", fontSize = 13.sp) },
-                                    onClick = {
-                                        onSettingsChanged(settings.copy(reminderMinute = m))
-                                        minExpanded = false
-                                    })
+
+                        Spacer(Modifier.height(14.dp))
+
+                        // 提醒时间
+                        Text("提醒时间", fontSize = 12.sp, fontWeight = FontWeight.W600, color = Color(0xFF1E293B))
+                        Spacer(Modifier.height(8.dp))
+
+                        // 滚动时间选择器
+                        Box(
+                            modifier = Modifier.fillMaxWidth().height(160.dp),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            // 选中高亮条
+                            Box(
+                                Modifier.fillMaxWidth(0.7f).height(40.dp)
+                                    .background(Color(0xFFF1F5F9), RoundedCornerShape(10.dp))
+                            )
+                            Row(
+                                Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.Center,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                // 小时滚轮
+                                WheelColumn(
+                                    items = hours.map { "${it}时" },
+                                    selectedIndex = hours.indexOf(settings.reminderHour),
+                                    onSelected = { idx ->
+                                        onSettingsChanged(settings.copy(reminderHour = hours[idx]))
+                                    },
+                                    modifier = Modifier.width(80.dp)
+                                )
+                                Text("：", fontSize = 20.sp, fontWeight = FontWeight.Bold,
+                                    color = Color(0xFF1E293B),
+                                    modifier = Modifier.padding(horizontal = 4.dp))
+                                // 分钟滚轮
+                                WheelColumn(
+                                    items = minutes.map { String.format("%02d分", it) },
+                                    selectedIndex = minutes.indexOf(settings.reminderMinute),
+                                    onSelected = { idx ->
+                                        onSettingsChanged(settings.copy(reminderMinute = minutes[idx]))
+                                    },
+                                    modifier = Modifier.width(80.dp)
+                                )
                             }
                         }
                     }
@@ -521,6 +550,66 @@ private fun ReminderSettingsScreen(onBack: () -> Unit, settings: AppSettings, on
             }
         }
         Spacer(Modifier.height(30.dp))
+    }
+}
+
+// ── 滚动轮选择器 ──
+@Composable
+private fun WheelColumn(
+    items: List<String>,
+    selectedIndex: Int,
+    onSelected: (Int) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val itemH = 40.dp
+    val visibleCount = 3
+    val listState = rememberLazyListState(initialFirstVisibleItemIndex = (selectedIndex - 1).coerceAtLeast(0))
+
+    val itemHPx = with(LocalDensity.current) { itemH.toPx() }
+    // 滚动停止时自动吸附到最近项
+    LaunchedEffect(listState.isScrollInProgress) {
+        if (!listState.isScrollInProgress) {
+            val center = listState.firstVisibleItemScrollOffset.toFloat() / itemHPx
+            val target = (listState.firstVisibleItemIndex + center + 0.5f).toInt()
+                .coerceIn(0, items.size - 1)
+            listState.animateScrollToItem(target)
+            onSelected(target)
+        }
+    }
+
+    Box(modifier = modifier.height(itemH * visibleCount)) {
+        LazyColumn(
+            state = listState,
+            modifier = Modifier.fillMaxSize(),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            userScrollEnabled = true
+        ) {
+            // 顶部空白占位（使首项可滚动到中心）
+            item { Spacer(Modifier.height(itemH)) }
+            items(items.size) { idx ->
+                val isSelected = idx == selectedIndex
+                Box(
+                    Modifier.height(itemH).fillMaxWidth(),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        items[idx],
+                        fontSize = if (isSelected) 16.sp else 13.sp,
+                        fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
+                        color = if (isSelected) Color(0xFF1E293B) else Color(0xFF94A3B8)
+                    )
+                }
+            }
+            // 底部空白占位
+            item { Spacer(Modifier.height(itemH)) }
+        }
+
+        // 顶部渐变遮罩
+        Box(Modifier.fillMaxWidth().height(itemH).align(Alignment.TopCenter)
+            .background(Brush.verticalGradient(listOf(Color.White, Color.Transparent))))
+        // 底部渐变遮罩
+        Box(Modifier.fillMaxWidth().height(itemH).align(Alignment.BottomCenter)
+            .background(Brush.verticalGradient(listOf(Color.Transparent, Color.White))))
     }
 }
 

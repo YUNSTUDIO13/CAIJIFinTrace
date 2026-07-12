@@ -158,6 +158,7 @@ val DEFAULT_REPORT_ITEMS = listOf(
 
 @Serializable
 data class AppSettings(
+    val reminderEnabled: Boolean = false,
     val reminderDays: Int = 7,
     val reminderHour: Int = 9,
     val reminderMinute: Int = 0,

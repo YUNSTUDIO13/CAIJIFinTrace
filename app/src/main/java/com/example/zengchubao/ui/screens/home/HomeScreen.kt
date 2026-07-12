@@ -110,9 +110,9 @@ fun HomeScreen(
             verticalAlignment = Alignment.CenterVertically
         ) {
             Column {
-                Text("增储宝", fontSize = 19.sp, fontWeight = FontWeight.Bold, color = Color(0xFF1E293B), lineHeight = 19.sp)
+                Text("财迹FinTrace", fontSize = 19.sp, fontWeight = FontWeight.Bold, color = Color(0xFF1E293B), lineHeight = 19.sp)
                 Spacer(Modifier.height(2.dp))
-                Text("存单全生命周期管理", fontSize = 10.sp, lineHeight = 10.sp, color = Color(0xFF94A3B8))
+                Text("跨行存单，一览全迹", fontSize = 10.sp, lineHeight = 10.sp, color = Color(0xFF94A3B8))
             }
             Box(contentAlignment = Alignment.Center,
                 modifier = Modifier.size(36.dp)

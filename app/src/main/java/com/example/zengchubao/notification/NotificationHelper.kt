@@ -34,7 +34,7 @@ object NotificationHelper {
 
     suspend fun scheduleAll(context: Context, settings: AppSettings): Int {
         cancelAll(context)
-        if (settings.reminderDays <= 0) return 0
+        if (!settings.reminderEnabled || settings.reminderDays <= 0) return 0
 
         val storage = LocalFileManager(context)
         val deposits = storage.getAllDeposits()
@@ -91,18 +91,12 @@ object NotificationHelper {
         val pending = PendingIntent.getBroadcast(context, requestCode, intent, flags)
 
         val alarmMgr = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
-        try {
-            if (Build.VERSION.SDK_INT >= 31) {
-                alarmMgr.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, triggerMillis, pending)
-            } else if (Build.VERSION.SDK_INT >= 19) {
-                alarmMgr.setExact(AlarmManager.RTC_WAKEUP, triggerMillis, pending)
-            } else {
-                alarmMgr.set(AlarmManager.RTC_WAKEUP, triggerMillis, pending)
-            }
-        } catch (e: SecurityException) {
-            Log.e(TAG, "exact alarm denied, fallback to inexact", e)
-            alarmMgr.set(AlarmManager.RTC_WAKEUP, triggerMillis, pending)
-        }
+        // setAlarmClock: 系统闹钟级别，Doze/省电模式均放行，不开app也能触发
+        val showIntent = context.packageManager.getLaunchIntentForPackage(context.packageName)
+        val showPi = PendingIntent.getActivity(context, requestCode + 10000, showIntent,
+            PendingIntent.FLAG_UPDATE_CURRENT or
+                if (Build.VERSION.SDK_INT >= 31) PendingIntent.FLAG_IMMUTABLE else 0)
+        alarmMgr.setAlarmClock(AlarmManager.AlarmClockInfo(triggerMillis, showPi), pending)
 
         Log.d(TAG, "alarm SET: ${dep.productName} @ $targetDateTime (in ${(triggerMillis - System.currentTimeMillis()) / 1000}s)")
     }
@@ -145,5 +139,19 @@ class ReminderReceiver : BroadcastReceiver() {
             .build()
         )
         Log.d(TAG, "notification posted: $title")
+    }
+}
+
+/** 开机/更新后重新调度所有提醒 */
+class BootReceiver : BroadcastReceiver() {
+    override fun onReceive(context: Context, intent: Intent) {
+        if (intent.action != Intent.ACTION_BOOT_COMPLETED && 
+            intent.action != "android.intent.action.MY_PACKAGE_REPLACED") return
+        Log.d(TAG, "boot/update, rescheduling...")
+        val storage = LocalFileManager(context)
+        kotlinx.coroutines.runBlocking {
+            val settings = storage.getSettings()
+            NotificationHelper.scheduleAll(context, settings)
+        }
     }
 }
