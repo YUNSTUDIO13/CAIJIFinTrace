@@ -548,6 +548,7 @@ private fun TimePickerDialog(
 
     AlertDialog(
         onDismissRequest = onDismiss,
+        containerColor = Color.White,
         title = { Text("选择提醒时间", fontSize = 16.sp, fontWeight = FontWeight.Bold, color = Color(0xFF1E293B)) },
         text = {
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
@@ -599,13 +600,13 @@ private fun WheelPicker(
 ) {
     val density = LocalDensity.current
     val itemHPx = with(density) { itemH.toPx() }
-    val visibleCount = 5 // 显示5行，中间一行高亮
+    val visibleCount = 5
 
     val listState = rememberLazyListState(
         initialFirstVisibleItemIndex = (selectedIndex - visibleCount / 2).coerceAtLeast(0)
     )
 
-    // 实时计算中间项索引，不触发父级重组
+    // 实时计算中间项索引
     val centerIndex by remember {
         derivedStateOf {
             val offset = listState.firstVisibleItemScrollOffset
@@ -614,14 +615,18 @@ private fun WheelPicker(
         }
     }
 
-    // 仅滚动停止时通知父级
+    // 防递归：仅在用户滚动停止时吸附+通知，程序动画触发的忽略
+    var isAnimating by remember { mutableStateOf(false) }
     LaunchedEffect(listState.isScrollInProgress) {
-        if (!listState.isScrollInProgress) {
-            // 吸附到最近项
+        if (!listState.isScrollInProgress && !isAnimating) {
+            isAnimating = true
             listState.animateScrollToItem(
                 (centerIndex - visibleCount / 2).coerceIn(0, items.size - 1)
             )
             onIndexChanged(centerIndex)
+            isAnimating = false
+        } else if (!listState.isScrollInProgress) {
+            isAnimating = false
         }
     }
 
@@ -632,7 +637,6 @@ private fun WheelPicker(
             horizontalAlignment = Alignment.CenterHorizontally,
             userScrollEnabled = true
         ) {
-            // 上方占位
             item { Spacer(Modifier.height(itemH * (visibleCount / 2))) }
             items(items.size) { idx ->
                 val isCenter = idx == centerIndex
@@ -648,7 +652,6 @@ private fun WheelPicker(
                     )
                 }
             }
-            // 下方占位
             item { Spacer(Modifier.height(itemH * (visibleCount / 2))) }
         }
 
