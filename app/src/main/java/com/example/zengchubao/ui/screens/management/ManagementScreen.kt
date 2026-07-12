@@ -35,6 +35,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.IntOffset
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.zIndex
@@ -412,7 +413,6 @@ private fun colorToHexString(color: Color): String {
 @Composable
 private fun ReminderSettingsScreen(onBack: () -> Unit, settings: AppSettings, onSettingsChanged: (AppSettings) -> Unit) {
     val context = androidx.compose.ui.platform.LocalContext.current
-    val density = LocalDensity.current
 
     // 通知权限
     val hasNotificationPermission = if (Build.VERSION.SDK_INT >= 33)
@@ -435,10 +435,6 @@ private fun ReminderSettingsScreen(onBack: () -> Unit, settings: AppSettings, on
             permissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
         }
     }
-
-    // 滚动选择器数据
-    val hours = (0..23).toList()
-    val minutes = (0..55 step 5).toList()
 
     Column(modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(bottom = 90.dp)) {
         SubPageTopBar("到期提醒", onBack)
@@ -503,45 +499,29 @@ private fun ReminderSettingsScreen(onBack: () -> Unit, settings: AppSettings, on
 
                         Spacer(Modifier.height(14.dp))
 
-                        // 提醒时间
-                        Text("提醒时间", fontSize = 12.sp, fontWeight = FontWeight.W600, color = Color(0xFF1E293B))
-                        Spacer(Modifier.height(8.dp))
-
-                        // 滚动时间选择器
-                        Box(
-                            modifier = Modifier.fillMaxWidth().height(160.dp),
-                            contentAlignment = Alignment.Center
+                        // 提醒时间（点击弹出选择器）
+                        Row(
+                            Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
                         ) {
-                            // 选中高亮条
-                            Box(
-                                Modifier.fillMaxWidth(0.7f).height(40.dp)
-                                    .background(Color(0xFFF1F5F9), RoundedCornerShape(10.dp))
+                            Text("提醒时间", fontSize = 12.sp, fontWeight = FontWeight.W600, color = Color(0xFF1E293B))
+                            // 时间显示按钮
+                            var showPicker by remember { mutableStateOf(false) }
+                            Text(
+                                "${settings.reminderHour}:${String.format("%02d", settings.reminderMinute)}",
+                                fontSize = 14.sp, fontWeight = FontWeight.W600, color = Color(0xFF2563EB),
+                                modifier = Modifier.clickable { showPicker = true }
                             )
-                            Row(
-                                Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.Center,
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                // 小时滚轮
-                                WheelColumn(
-                                    items = hours.map { "${it}时" },
-                                    selectedIndex = hours.indexOf(settings.reminderHour),
-                                    onSelected = { idx ->
-                                        onSettingsChanged(settings.copy(reminderHour = hours[idx]))
+                            if (showPicker) {
+                                TimePickerDialog(
+                                    initialHour = settings.reminderHour,
+                                    initialMinute = settings.reminderMinute,
+                                    onConfirm = { h, m ->
+                                        onSettingsChanged(settings.copy(reminderHour = h, reminderMinute = m))
+                                        showPicker = false
                                     },
-                                    modifier = Modifier.width(80.dp)
-                                )
-                                Text("：", fontSize = 20.sp, fontWeight = FontWeight.Bold,
-                                    color = Color(0xFF1E293B),
-                                    modifier = Modifier.padding(horizontal = 4.dp))
-                                // 分钟滚轮
-                                WheelColumn(
-                                    items = minutes.map { String.format("%02d分", it) },
-                                    selectedIndex = minutes.indexOf(settings.reminderMinute),
-                                    onSelected = { idx ->
-                                        onSettingsChanged(settings.copy(reminderMinute = minutes[idx]))
-                                    },
-                                    modifier = Modifier.width(80.dp)
+                                    onDismiss = { showPicker = false }
                                 )
                             }
                         }
@@ -553,27 +533,95 @@ private fun ReminderSettingsScreen(onBack: () -> Unit, settings: AppSettings, on
     }
 }
 
-// ── 滚动轮选择器 ──
+// ═════ 时间选择弹框 ═════
 @Composable
-private fun WheelColumn(
+private fun TimePickerDialog(
+    initialHour: Int, initialMinute: Int,
+    onConfirm: (hour: Int, minute: Int) -> Unit,
+    onDismiss: () -> Unit
+) {
+    val hours = (0..23).toList()
+    val minutes = (0..55 step 5).toList()
+
+    var selectedHour by remember { mutableStateOf(initialHour) }
+    var selectedMinute by remember { mutableStateOf(initialMinute) }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("选择提醒时间", fontSize = 16.sp, fontWeight = FontWeight.Bold, color = Color(0xFF1E293B)) },
+        text = {
+            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                Row(
+                    horizontalArrangement = Arrangement.Center,
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.height(160.dp)
+                ) {
+                    // 选中指示条
+                    WheelPicker(
+                        items = hours.map { "${it}时" },
+                        selectedIndex = selectedHour,
+                        onIndexChanged = { selectedHour = it },
+                        modifier = Modifier.width(80.dp)
+                    )
+                    Text("：", fontSize = 20.sp, fontWeight = FontWeight.Bold,
+                        color = Color(0xFF1E293B),
+                        modifier = Modifier.padding(horizontal = 4.dp))
+                    WheelPicker(
+                        items = minutes.map { String.format("%02d分", it) },
+                        selectedIndex = selectedMinute,
+                        onIndexChanged = { selectedMinute = it },
+                        modifier = Modifier.width(80.dp)
+                    )
+                }
+            }
+        },
+        confirmButton = {
+            TextButton(onClick = { onConfirm(selectedHour, minutes[selectedMinute]) }) {
+                Text("确认", color = Color(0xFF2563EB), fontWeight = FontWeight.Bold)
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text("取消", color = Color(0xFF94A3B8))
+            }
+        }
+    )
+}
+
+// ═════ 非闪烁滚动轮 ═════
+@Composable
+private fun WheelPicker(
     items: List<String>,
     selectedIndex: Int,
-    onSelected: (Int) -> Unit,
-    modifier: Modifier = Modifier
+    onIndexChanged: (Int) -> Unit,
+    modifier: Modifier = Modifier,
+    itemH: Dp = 40.dp
 ) {
-    val itemH = 40.dp
-    val visibleCount = 3
-    val listState = rememberLazyListState(initialFirstVisibleItemIndex = (selectedIndex - 1).coerceAtLeast(0))
+    val density = LocalDensity.current
+    val itemHPx = with(density) { itemH.toPx() }
+    val visibleCount = 5 // 显示5行，中间一行高亮
 
-    val itemHPx = with(LocalDensity.current) { itemH.toPx() }
-    // 滚动停止时自动吸附到最近项
+    val listState = rememberLazyListState(
+        initialFirstVisibleItemIndex = (selectedIndex - visibleCount / 2).coerceAtLeast(0)
+    )
+
+    // 实时计算中间项索引，不触发父级重组
+    val centerIndex by remember {
+        derivedStateOf {
+            val offset = listState.firstVisibleItemScrollOffset
+            val idx = listState.firstVisibleItemIndex + (offset / itemHPx + 0.5f).toInt()
+            idx.coerceIn(0, items.size - 1)
+        }
+    }
+
+    // 仅滚动停止时通知父级
     LaunchedEffect(listState.isScrollInProgress) {
         if (!listState.isScrollInProgress) {
-            val center = listState.firstVisibleItemScrollOffset.toFloat() / itemHPx
-            val target = (listState.firstVisibleItemIndex + center + 0.5f).toInt()
-                .coerceIn(0, items.size - 1)
-            listState.animateScrollToItem(target)
-            onSelected(target)
+            // 吸附到最近项
+            listState.animateScrollToItem(
+                (centerIndex - visibleCount / 2).coerceIn(0, items.size - 1)
+            )
+            onIndexChanged(centerIndex)
         }
     }
 
@@ -584,31 +632,30 @@ private fun WheelColumn(
             horizontalAlignment = Alignment.CenterHorizontally,
             userScrollEnabled = true
         ) {
-            // 顶部空白占位（使首项可滚动到中心）
-            item { Spacer(Modifier.height(itemH)) }
+            // 上方占位
+            item { Spacer(Modifier.height(itemH * (visibleCount / 2))) }
             items(items.size) { idx ->
-                val isSelected = idx == selectedIndex
+                val isCenter = idx == centerIndex
                 Box(
                     Modifier.height(itemH).fillMaxWidth(),
                     contentAlignment = Alignment.Center
                 ) {
                     Text(
                         items[idx],
-                        fontSize = if (isSelected) 16.sp else 13.sp,
-                        fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
-                        color = if (isSelected) Color(0xFF1E293B) else Color(0xFF94A3B8)
+                        fontSize = if (isCenter) 18.sp else 14.sp,
+                        fontWeight = if (isCenter) FontWeight.Bold else FontWeight.Normal,
+                        color = if (isCenter) Color(0xFF1E293B) else Color(0xFF94A3B8)
                     )
                 }
             }
-            // 底部空白占位
-            item { Spacer(Modifier.height(itemH)) }
+            // 下方占位
+            item { Spacer(Modifier.height(itemH * (visibleCount / 2))) }
         }
 
-        // 顶部渐变遮罩
-        Box(Modifier.fillMaxWidth().height(itemH).align(Alignment.TopCenter)
+        // 上下渐变遮罩
+        Box(Modifier.fillMaxWidth().height(itemH * 2).align(Alignment.TopCenter)
             .background(Brush.verticalGradient(listOf(Color.White, Color.Transparent))))
-        // 底部渐变遮罩
-        Box(Modifier.fillMaxWidth().height(itemH).align(Alignment.BottomCenter)
+        Box(Modifier.fillMaxWidth().height(itemH * 2).align(Alignment.BottomCenter)
             .background(Brush.verticalGradient(listOf(Color.Transparent, Color.White))))
     }
 }
