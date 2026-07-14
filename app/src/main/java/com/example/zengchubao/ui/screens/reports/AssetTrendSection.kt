@@ -410,11 +410,16 @@ private fun TrendChartCanvas(
         }
         drawPath(solid, color = GOLD, style = Stroke(width = 2.8f))
 
-        // 未来月虚线拉平
+        // 未来月虚线（跟随每月实际预测值，不平拉）
         if (safeIdx < n - 1) {
             val dash = Path().apply {
-                moveTo(xs[safeIdx], currentY)
-                lineTo(xs[n - 1], currentY)
+                moveTo(xs[safeIdx], ys[safeIdx])
+                for (i in (safeIdx + 1) until n) {
+                    val px = xs[i - 1]; val py = ys[i - 1]
+                    val cx = xs[i]; val cy = ys[i]
+                    val mid = (px + cx) / 2f
+                    cubicTo(mid, py, mid, cy, cx, cy)
+                }
             }
             drawPath(
                 dash, color = GOLD_SOFT,
