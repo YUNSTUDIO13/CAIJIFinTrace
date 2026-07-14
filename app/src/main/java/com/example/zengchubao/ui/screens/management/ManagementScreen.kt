@@ -868,6 +868,16 @@ private fun FormulaCalcScreen(onBack: () -> Unit) {
             formula = "Σ(本金)",
             desc = "所有存单（含已到期、已归档）的本金总和。\n反映历史总投入规模"
         )
+        FormulaCard(
+            title = "总资产趋势图",
+            formula = "每月末总资产 = 持有中且未到期本金 + 持有中累计收益",
+            desc = "仅统计持有中且 endDate > 当月月末的存单。\n到期存单的本金在该月后不再计入总资产。\n预测月（未来月份）按持有存单照常计算"
+        )
+        FormulaCard(
+            title = "净利息趋势图",
+            formula = "每月末净利息 = 持有中累计收益 + 到期未归档收益 + 已归档收益",
+            desc = "持有中累计收益 = 按当月月末已持有天数计算\n到期未归档收益 = endDate ≤ 当月月末 的持有中存单到期收益\n已归档收益 = 已归档存单的 maturityAmount − 本金\n预测月按持有存单照常计算"
+        )
 
         Spacer(Modifier.height(40.dp))
     }
