@@ -251,14 +251,18 @@ private fun HeroMetric(label: String, value: String, modifier: Modifier = Modifi
 
 @Composable
 fun PillChip(label: String, selected: Boolean, onClick: () -> Unit) {
-    Surface(onClick = onClick, shape = RoundedCornerShape(22.dp),
-        color = if (selected) Color(0xFF1E293B) else Color.White,
-        border = BorderStroke(if (selected) 1.dp else 0.6.dp,
-            if (selected) Color(0xFF1E293B) else Color(0xFFE2E8F0)),
-        shadowElevation = 0.dp) {
+    Box(
+        modifier = Modifier
+            .clip(RoundedCornerShape(22.dp))
+            .background(if (selected) Color(0xFF1E293B) else Color.White)
+            .border(if (selected) 1.dp else 0.6.dp,
+                if (selected) Color(0xFF1E293B) else Color(0xFFE2E8F0),
+                RoundedCornerShape(22.dp))
+            .clickable { onClick() }
+            .padding(horizontal = 13.dp, vertical = 5.dp)
+    ) {
         Text(label, fontSize = 11.sp, fontWeight = FontWeight.W600,
-            color = if (selected) Color.White else Color(0xFF64748B),
-            modifier = Modifier.padding(horizontal = 13.dp, vertical = 5.dp))
+            color = if (selected) Color.White else Color(0xFF64748B))
     }
 }
 
@@ -266,14 +270,18 @@ fun PillChip(label: String, selected: Boolean, onClick: () -> Unit) {
 
 @Composable
 fun TimePillChip(label: String, selected: Boolean, activeTextColor: Color, onClick: () -> Unit) {
-    Surface(onClick = onClick, shape = RoundedCornerShape(20.dp),
-        color = if (selected) Color(0xFF1E293B) else Color.White,
-        border = BorderStroke(if (selected) 1.dp else 0.6.dp,
-            if (selected) Color(0xFF1E293B) else Color(0xFFE2E8F0)),
-        shadowElevation = 0.dp) {
+    Box(
+        modifier = Modifier
+            .clip(RoundedCornerShape(20.dp))
+            .background(if (selected) Color(0xFF1E293B) else Color.White)
+            .border(if (selected) 1.dp else 0.6.dp,
+                if (selected) Color(0xFF1E293B) else Color(0xFFE2E8F0),
+                RoundedCornerShape(20.dp))
+            .clickable { onClick() }
+            .padding(horizontal = 10.dp, vertical = 0.dp)
+    ) {
         Text(label, fontSize = 10.sp, fontWeight = FontWeight.W600,
-            color = if (selected) Color.White else activeTextColor,
-            modifier = Modifier.padding(horizontal = 10.dp, vertical = 0.dp))
+            color = if (selected) Color.White else activeTextColor)
     }
 }
 
