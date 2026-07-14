@@ -111,6 +111,11 @@ private fun computeYAxis(values: List<Double>): YAxisSpec {
 @Composable
 fun AssetTrendSection(deposits: List<Deposit>) {
     val currentYear = todayString().take(4).toIntOrNull() ?: 2026
+    // 最后一张已到期或持有中存单的到期年份（预测上限）
+    val maxYear = remember(deposits) {
+        val maxEnd = deposits.maxOfOrNull { it.endDate.take(4).toIntOrNull() ?: currentYear }
+        maxOf(currentYear, maxEnd ?: currentYear)
+    }
     var year by remember { mutableStateOf(currentYear) }
     var mode by remember { mutableStateOf(TrendMode.NET_INTEREST) }
     var hoverIdx by remember { mutableStateOf<Int?>(null) }
@@ -122,11 +127,12 @@ fun AssetTrendSection(deposits: List<Deposit>) {
     val yAxis = remember(currentValues) { computeYAxis(currentValues) }
 
     val todayMonth = todayString().substring(5, 7).toIntOrNull() ?: 12
-    val currentMonthIdx = if (year == currentYear) (todayMonth - 1).coerceIn(0, 11) else 11
+    // 未来年份：月末指针落点用 12 月（预测）；当前年：用实际月份
+    val currentMonthIdx = if (year > currentYear) 11 else (todayMonth - 1).coerceIn(0, 11)
 
     val displayIdx = hoverIdx ?: currentMonthIdx
     val headerValue = currentValues.getOrNull(displayIdx) ?: 0.0
-    val headerIsFuture = year == currentYear && displayIdx > currentMonthIdx
+    val headerIsFuture = year > currentYear || (year == currentYear && displayIdx > currentMonthIdx)
 
     Card(
         modifier = Modifier.padding(horizontal = 20.dp).fillMaxWidth(),
@@ -147,8 +153,9 @@ fun AssetTrendSection(deposits: List<Deposit>) {
                 Spacer(Modifier.weight(1f))
                 YearSwitcher(
                     year = year,
+                    maxYear = maxYear,
                     onPrev = { year-- },
-                    onNext = { if (year < currentYear) year++ }
+                    onNext = { if (year < maxYear) year++ }
                 )
             }
 
@@ -178,6 +185,7 @@ fun AssetTrendSection(deposits: List<Deposit>) {
                     values = currentValues,
                     yAxis = yAxis,
                     currentMonthIdx = currentMonthIdx,
+                    isFutureYear = year > currentYear,
                     hoverIdx = displayIdx,
                     onTapAt = { frac -> hoverIdx = (frac * 11).toInt().coerceIn(0, 11) }
                 )
@@ -267,8 +275,9 @@ private fun TrendSegmented(
 }
 
 @Composable
-private fun YearSwitcher(year: Int, onPrev: () -> Unit, onNext: () -> Unit) {
+private fun YearSwitcher(year: Int, maxYear: Int, onPrev: () -> Unit, onNext: () -> Unit) {
     val currentYear = todayString().take(4).toIntOrNull() ?: 2026
+    val canGoNext = year < maxYear
     Row(verticalAlignment = Alignment.CenterVertically) {
         Icon(
             Icons.Filled.ChevronLeft, "上一年",
@@ -282,9 +291,9 @@ private fun YearSwitcher(year: Int, onPrev: () -> Unit, onNext: () -> Unit) {
         )
         Icon(
             Icons.Filled.ChevronRight, "下一年",
-            tint = if (year < currentYear) Color(0xFF475569) else Color(0xFFCBD5E1),
+            tint = if (canGoNext) Color(0xFF475569) else Color(0xFFCBD5E1),
             modifier = Modifier.size(16.dp).let { mod ->
-                if (year < currentYear) mod.clickable { onNext() } else mod
+                if (canGoNext) mod.clickable { onNext() } else mod
             }
         )
     }
@@ -295,6 +304,7 @@ private fun TrendChartCanvas(
     values: List<Double>,
     yAxis: YAxisSpec,
     currentMonthIdx: Int,
+    isFutureYear: Boolean = false,
     hoverIdx: Int,
     onTapAt: (Float) -> Unit
 ) {
@@ -363,53 +373,94 @@ private fun TrendChartCanvas(
         val ys = values.take(n).map { toY(it.coerceIn(yAxis.min, yAxis.max)) }
         val currentY = ys[safeIdx]
 
-        // 渐变面积
-        val areaPath = Path().apply {
-            moveTo(xs[0], ys[0])
-            for (i in 1..safeIdx) {
-                val px = xs[i - 1]; val py = ys[i - 1]
-                val cx = xs[i]; val cy = ys[i]
-                val mid = (px + cx) / 2f
-                cubicTo(mid, py, mid, cy, cx, cy)
+        if (isFutureYear) {
+            // 未来年份：全部虚线 + 淡色渐变面积
+            val areaPath = Path().apply {
+                moveTo(xs[0], ys[0])
+                for (i in 1 until n) {
+                    val px = xs[i - 1]; val py = ys[i - 1]
+                    val cx = xs[i]; val cy = ys[i]
+                    val mid = (px + cx) / 2f
+                    cubicTo(mid, py, mid, cy, cx, cy)
+                }
+                lineTo(xs[n - 1], plotTopPad + plotH)
+                lineTo(xs[0], plotTopPad + plotH)
+                close()
             }
-            lineTo(xs[safeIdx], plotTopPad + plotH)
-            lineTo(xs[0], plotTopPad + plotH)
-            close()
-        }
-        drawPath(
-            areaPath,
-            brush = Brush.verticalGradient(
-                colors = listOf(
-                    GOLD.copy(alpha = 0.55f),
-                    GOLD.copy(alpha = 0.22f),
-                    GOLD.copy(alpha = 0.04f)
-                ),
-                startY = plotTopPad,
-                endY = plotTopPad + plotH
+            drawPath(
+                areaPath,
+                brush = Brush.verticalGradient(
+                    colors = listOf(
+                        GOLD.copy(alpha = 0.22f),
+                        GOLD.copy(alpha = 0.08f),
+                        GOLD.copy(alpha = 0.02f)
+                    ),
+                    startY = plotTopPad,
+                    endY = plotTopPad + plotH
+                )
             )
-        )
-
-        // 实线段
-        val solid = Path()
-        solid.moveTo(xs[0], ys[0])
-        for (i in 1..safeIdx) {
-            val px = xs[i - 1]; val py = ys[i - 1]
-            val cx = xs[i]; val cy = ys[i]
-            val mid = (px + cx) / 2f
-            solid.cubicTo(mid, py, mid, cy, cx, cy)
-        }
-        drawPath(solid, color = GOLD, style = Stroke(width = 2.8f))
-
-        // 未来月虚线拉平
-        if (safeIdx < n - 1) {
             val dash = Path().apply {
-                moveTo(xs[safeIdx], currentY)
-                lineTo(xs[n - 1], currentY)
+                moveTo(xs[0], ys[0])
+                for (i in 1 until n) {
+                    val px = xs[i - 1]; val py = ys[i - 1]
+                    val cx = xs[i]; val cy = ys[i]
+                    val mid = (px + cx) / 2f
+                    cubicTo(mid, py, mid, cy, cx, cy)
+                }
             }
             drawPath(
                 dash, color = GOLD_SOFT,
                 style = Stroke(width = 1.4f, pathEffect = PathEffect.dashPathEffect(floatArrayOf(5f, 4f)))
             )
+        } else {
+            // 渐变面积
+            val areaPath = Path().apply {
+                moveTo(xs[0], ys[0])
+                for (i in 1..safeIdx) {
+                    val px = xs[i - 1]; val py = ys[i - 1]
+                    val cx = xs[i]; val cy = ys[i]
+                    val mid = (px + cx) / 2f
+                    cubicTo(mid, py, mid, cy, cx, cy)
+                }
+                lineTo(xs[safeIdx], plotTopPad + plotH)
+                lineTo(xs[0], plotTopPad + plotH)
+                close()
+            }
+            drawPath(
+                areaPath,
+                brush = Brush.verticalGradient(
+                    colors = listOf(
+                        GOLD.copy(alpha = 0.55f),
+                        GOLD.copy(alpha = 0.22f),
+                        GOLD.copy(alpha = 0.04f)
+                    ),
+                    startY = plotTopPad,
+                    endY = plotTopPad + plotH
+                )
+            )
+
+            // 实线段
+            val solid = Path()
+            solid.moveTo(xs[0], ys[0])
+            for (i in 1..safeIdx) {
+                val px = xs[i - 1]; val py = ys[i - 1]
+                val cx = xs[i]; val cy = ys[i]
+                val mid = (px + cx) / 2f
+                solid.cubicTo(mid, py, mid, cy, cx, cy)
+            }
+            drawPath(solid, color = GOLD, style = Stroke(width = 2.8f))
+
+            // 未来月虚线拉平
+            if (safeIdx < n - 1) {
+                val dash = Path().apply {
+                    moveTo(xs[safeIdx], currentY)
+                    lineTo(xs[n - 1], currentY)
+                }
+                drawPath(
+                    dash, color = GOLD_SOFT,
+                    style = Stroke(width = 1.4f, pathEffect = PathEffect.dashPathEffect(floatArrayOf(5f, 4f)))
+                )
+            }
         }
 
         // hover 位置竖线
