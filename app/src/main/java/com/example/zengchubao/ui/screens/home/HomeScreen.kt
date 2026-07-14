@@ -273,7 +273,7 @@ fun TimePillChip(label: String, selected: Boolean, activeTextColor: Color, onCli
         shadowElevation = 0.dp) {
         Text(label, fontSize = 10.sp, fontWeight = FontWeight.W600,
             color = if (selected) Color.White else activeTextColor,
-            modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp))
+            modifier = Modifier.padding(horizontal = 10.dp, vertical = 2.dp))
     }
 }
 
