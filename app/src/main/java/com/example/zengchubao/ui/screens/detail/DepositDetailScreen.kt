@@ -27,6 +27,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.zengchubao.model.*
 import com.example.zengchubao.storage.LocalFileManager
+import com.example.zengchubao.ui.screens.home.heroGradient
 import com.example.zengchubao.ui.theme.*
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -136,21 +137,32 @@ fun DepositDetailScreen(
 
             Spacer(Modifier.height(20.dp))
 
-            // ── Hero：产品名 + 本金 + 距到期环 ──
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.Bottom
+            // ── Hero：渐变卡片（参照首页hero）──
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(28.dp))
+                    .heroGradient()
+                    .padding(20.dp)
             ) {
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(deposit.productName, fontSize = 14.sp, color = Gray400)
-                    Spacer(Modifier.height(2.dp))
-                    Text(fmt(deposit.principal), fontSize = 30.sp, fontWeight = FontWeight.Bold,
-                        color = Gray900, letterSpacing = (-0.5).sp)
-                    Spacer(Modifier.height(4.dp))
-                    Text("本金", fontSize = 12.sp, color = Gray400)
-                }
-                if (deposit.status == DepositStatus.HOLDING && totalDays > 0) {
-                    DaysRing(daysLeft = remainingDays.coerceAtLeast(0), totalDays = totalDays)
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(deposit.productName, fontSize = 11.sp, fontWeight = FontWeight.W500,
+                            color = Color(0x73FFFFFF))
+                        Spacer(Modifier.height(4.dp))
+                        Row(verticalAlignment = Alignment.Bottom) {
+                            Text("¥", fontSize = 14.sp, fontWeight = FontWeight.Light,
+                                color = Color(0xFFE8B254), modifier = Modifier.padding(bottom = 6.dp))
+                            Text(fmt(deposit.principal), fontSize = 30.sp, fontWeight = FontWeight.Bold,
+                                color = Color.White, letterSpacing = (-0.5).sp)
+                        }
+                    }
+                    if (deposit.status == DepositStatus.HOLDING && totalDays > 0) {
+                        DaysRing(daysLeft = remainingDays.coerceAtLeast(0), totalDays = totalDays)
+                    }
                 }
             }
 
@@ -161,13 +173,13 @@ fun DepositDetailScreen(
                 Surface(
                     modifier = Modifier.weight(1f),
                     shape = RoundedCornerShape(16.dp),
-                    color = BrandBlueBg,
+                    color = Color.White,
                     border = BorderStroke(0.6.dp, Color(0xFFE2E8F0))
                 ) {
                     Column(Modifier.padding(horizontal = 16.dp, vertical = 12.dp)) {
                         Text("当前资产余额", fontSize = 11.sp, color = Gray400)
                         Spacer(Modifier.height(4.dp))
-                        Text(fmt(assetBalance), fontSize = 16.sp, fontWeight = FontWeight.Bold, color = BrandBlue)
+                        Text(fmt(assetBalance), fontSize = 16.sp, fontWeight = FontWeight.Bold, color = Gray900)
                     }
                 }
                 Surface(
@@ -406,36 +418,25 @@ private fun DaysRing(daysLeft: Int, totalDays: Int) {
     val density = LocalDensity.current
     val strokeW = with(density) { 4.dp.toPx() }
     val r = with(density) { ringSizeDp.toPx() / 2f } - strokeW / 2f
-    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(6.dp)
-        ) {
-            Canvas(modifier = Modifier.size(ringSizeDp)) {
-                val cx = size.width / 2; val cy = size.height / 2
-                drawCircle(Color(0xFFE8ECF4), r, Offset(cx, cy), style = Stroke(strokeW, cap = StrokeCap.Round))
-                drawArc(BrandBlue, -90f, 360f * pct, false,
-                    Offset(cx - r, cy - r), Size(r * 2, r * 2),
-                    style = Stroke(strokeW, cap = StrokeCap.Round))
-                drawContext.canvas.nativeCanvas.apply {
-                    val p = android.graphics.Paint().apply {
-                        color = android.graphics.Color.parseColor("#1B4FD8")
-                        textSize = 14.sp.toPx()
-                        typeface = android.graphics.Typeface.DEFAULT_BOLD
-                        isAntiAlias = true; textAlign = android.graphics.Paint.Align.CENTER
-                    }
-                    val lbl = android.graphics.Paint().apply {
-                        color = android.graphics.Color.parseColor("#8892A4")
-                        textSize = 8.sp.toPx()
-                        isAntiAlias = true; textAlign = android.graphics.Paint.Align.CENTER
-                    }
-                        drawText("$daysLeft", cx, cy - 8f, p)
-                    drawText("天", cx, cy + 31f, lbl)
+    Box(modifier = Modifier.size(ringSizeDp), contentAlignment = Alignment.Center) {
+        Canvas(modifier = Modifier.size(ringSizeDp)) {
+            val cx = size.width / 2; val cy = size.height / 2
+            drawCircle(Color(0x33FFFFFF), r, Offset(cx, cy), style = Stroke(strokeW, cap = StrokeCap.Round))
+            drawArc(Color(0xFFE8B254), -90f, 360f * pct, false,
+                Offset(cx - r, cy - r), Size(r * 2, r * 2),
+                style = Stroke(strokeW, cap = StrokeCap.Round))
+            drawContext.canvas.nativeCanvas.apply {
+                val p = android.graphics.Paint().apply {
+                    color = android.graphics.Color.WHITE
+                    textSize = 20.sp.toPx()
+                    typeface = android.graphics.Typeface.DEFAULT_BOLD
+                    isAntiAlias = true; textAlign = android.graphics.Paint.Align.CENTER
                 }
+                // 文字居中：基线在 cy + textSize/3 附近
+                val fm = p.fontMetrics
+                drawText("$daysLeft", cx, cy - (fm.ascent + fm.descent) / 2, p)
             }
         }
-        Spacer(Modifier.height(2.dp))
-        Text("距到期", fontSize = 10.sp, color = Gray400)
     }
 }
 
