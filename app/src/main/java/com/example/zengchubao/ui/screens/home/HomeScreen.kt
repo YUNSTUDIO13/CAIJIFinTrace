@@ -125,7 +125,7 @@ fun HomeScreen(
                         Row(verticalAlignment = Alignment.Bottom) {
                             Text("¥", fontSize = 14.sp, fontWeight = FontWeight.Light,
                                 color = Color(0xFFE8B254), modifier = Modifier.padding(bottom = 6.dp))
-                            Text(CN_INT.format(assetBalance), fontSize = 42.sp, fontWeight = FontWeight.ExtraBold,
+                            Text(CN.format(assetBalance), fontSize = 42.sp, fontWeight = FontWeight.ExtraBold,
                                 color = Color.White, letterSpacing = (-1).sp)
                         }
                         Spacer(Modifier.height(8.dp))
