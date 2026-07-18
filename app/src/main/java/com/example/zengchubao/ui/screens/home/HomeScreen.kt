@@ -4,6 +4,7 @@ import androidx.compose.animation.*
 import androidx.compose.foundation.*
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -51,6 +52,7 @@ private fun fmtD(v: Double) = CN.format(v)
 @Composable
 fun HomeScreen(
     deposits: List<Deposit>,
+    listState: LazyListState,
     onNewDeposit: () -> Unit,
     onDepositClick: (String) -> Unit,
     onAccumulatedDetail: () -> Unit = {},
@@ -108,6 +110,7 @@ fun HomeScreen(
 
     Box(modifier = Modifier.fillMaxSize().background(Color(0xFFF4F6FB))) {
         LazyColumn(
+            state = listState,
             modifier = Modifier
                 .fillMaxSize(),
             contentPadding = PaddingValues(top = 52.dp, bottom = 90.dp)

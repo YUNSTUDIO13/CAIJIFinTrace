@@ -173,7 +173,7 @@ fun DepositDetailScreen(
                 Surface(
                     modifier = Modifier.weight(1f),
                     shape = RoundedCornerShape(16.dp),
-                    color = Gray50,
+                    color = Color.White,
                     border = BorderStroke(0.6.dp, Color(0xFFE2E8F0))
                 ) {
                     Column(Modifier.padding(horizontal = 16.dp, vertical = 12.dp)) {
@@ -416,7 +416,7 @@ private fun DaysRing(daysLeft: Int, totalDays: Int) {
             drawContext.canvas.nativeCanvas.apply {
                 val p = android.graphics.Paint().apply {
                     color = android.graphics.Color.WHITE
-                    textSize = 20.sp.toPx()
+                    textSize = 18.sp.toPx()
                     typeface = android.graphics.Typeface.DEFAULT_BOLD
                     isAntiAlias = true; textAlign = android.graphics.Paint.Align.CENTER
                 }

@@ -23,6 +23,7 @@ import androidx.compose.animation.*
 import androidx.compose.animation.core.tween
 import androidx.compose.runtime.*
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material3.Scaffold
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.LayoutDirection
@@ -71,6 +72,8 @@ fun ZengChuBaoApp() {
     // ── 导航状态 ──
     var currentTab by remember { mutableStateOf(AppTab.HOME) }
     var currentScreen by remember { mutableStateOf<Screen>(Screen.Main) }
+    val homeListState = rememberLazyListState()
+    var lastHomeTapTime by remember { mutableStateOf(0L) }
 
     // ── 初始化 ──
     LaunchedEffect(Unit) {
@@ -143,6 +146,16 @@ fun ZengChuBaoApp() {
                             BottomNavBar(
                                 currentTab = currentTab,
                                 onTabSelected = { tab ->
+                                    val now = System.currentTimeMillis()
+                                    if (tab == AppTab.HOME && currentTab == AppTab.HOME) {
+                                        // 双击主页 → 回到顶部
+                                        if (now - lastHomeTapTime < 400) {
+                                            scope.launch {
+                                                homeListState.animateScrollToItem(0)
+                                            }
+                                        }
+                                        lastHomeTapTime = now
+                                    }
                                     currentTab = tab
                                     // 切换到首页时自动触发归档检查
                                     if (tab == AppTab.HOME) {
@@ -164,6 +177,7 @@ fun ZengChuBaoApp() {
                             when (currentTab) {
                                 AppTab.HOME -> HomeScreen(
                                     deposits = deposits,
+                                    listState = homeListState,
                                     onNewDeposit = { currentScreen = Screen.NewDeposit },
                                     onDepositClick = { depositId ->
                                         currentScreen = Screen.DepositDetail(depositId)
