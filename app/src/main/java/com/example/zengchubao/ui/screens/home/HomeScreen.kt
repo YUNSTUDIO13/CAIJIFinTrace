@@ -111,7 +111,7 @@ fun HomeScreen(
             state = listState,
             modifier = Modifier
                 .fillMaxSize(),
-            contentPadding = PaddingValues(top = 44.dp, bottom = 90.dp)
+            contentPadding = PaddingValues(top = 52.dp, bottom = 90.dp)
         ) {
             // ── Hero 卡片 ──
             item {
@@ -245,7 +245,7 @@ fun HomeScreen(
                         )
                     )
                 )
-                .padding(start = 18.dp, end = 18.dp, top = 8.dp, bottom = 4.dp)
+                .padding(start = 18.dp, end = 18.dp, top = 12.dp, bottom = 4.dp)
         ) {
             Text("财迹FinTrace", fontSize = 19.sp, fontWeight = FontWeight.Bold, color = Color(0xFF1E293B), lineHeight = 19.sp)
             Spacer(Modifier.height(2.dp))
