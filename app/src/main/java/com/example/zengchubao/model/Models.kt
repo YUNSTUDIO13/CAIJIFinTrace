@@ -7,7 +7,7 @@ import kotlinx.serialization.Serializable
 enum class DepositStatus(val label: String) {
     HOLDING("持有中"),
     MATURED("已到期"),
-    EARLY_WITHDRAWN("已提前支取"),
+    EARLY_WITHDRAWN("提前支取"),
     ARCHIVED("已归档")
 }
 

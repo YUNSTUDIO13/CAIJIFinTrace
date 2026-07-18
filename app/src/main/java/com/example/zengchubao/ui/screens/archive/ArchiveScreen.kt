@@ -35,7 +35,7 @@ fun ArchiveScreen(
     onBack: () -> Unit = {},
     onDepositClick: (String) -> Unit = {}
 ) {
-    val archived = remember(deposits) { deposits.filter { it.status == DepositStatus.ARCHIVED } }
+    val archived = remember(deposits) { deposits.filter { it.status == DepositStatus.ARCHIVED || it.status == DepositStatus.EARLY_WITHDRAWN } }
 
     // 归档统计
     val totalPrincipal = remember(archived) { archived.sumOf { it.principal } }

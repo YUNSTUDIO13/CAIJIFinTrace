@@ -107,7 +107,7 @@ fun DepositDetailScreen(
                     val (statusLabel, statusBg, statusColor) = when (deposit.status) {
                         DepositStatus.HOLDING -> Triple("持有中", EmeraldBg, EmeraldText)
                         DepositStatus.MATURED -> Triple("已到期", RedBg, Red500)
-                        DepositStatus.EARLY_WITHDRAWN -> Triple("已支取", AmberBg, Amber600)
+                        DepositStatus.EARLY_WITHDRAWN -> Triple("提前支取", AmberBg, Amber600)
                         DepositStatus.ARCHIVED -> Triple("已归档", Gray100, Gray500)
                     }
                     Surface(shape = RoundedCornerShape(999.dp), color = statusBg,
@@ -348,15 +348,11 @@ fun DepositDetailScreen(
             EarlyWithdrawalSheet(
                 deposit = deposit,
                 onDismiss = { showEarlyWithdrawalSheet = false },
-                onConfirm = {
+                onConfirm = { actualTotalAmount ->
                     showEarlyWithdrawalSheet = false
                     scope.launch {
                         withContext(Dispatchers.IO) {
-                            val updated = deposit.copy(
-                                status = DepositStatus.EARLY_WITHDRAWN,
-                                updatedAt = System.currentTimeMillis()
-                            )
-                            storage.saveDeposit(updated)
+                            storage.earlyWithdrawDeposit(deposit.id, actualTotalAmount)
                         }
                         onDeleted()
                     }
@@ -479,7 +475,7 @@ private fun ActionButton(
 fun EarlyWithdrawalSheet(
     deposit: Deposit,
     onDismiss: () -> Unit,
-    onConfirm: () -> Unit
+    onConfirm: (actualTotalAmount: Double) -> Unit
 ) {
     var withdrawalDate by remember { mutableStateOf(todayString()) }
     var demandRate by remember { mutableStateOf("0.3") }
@@ -605,7 +601,7 @@ fun EarlyWithdrawalSheet(
                 ) { Text("取消", fontSize = 14.sp) }
 
                 Button(
-                    onClick = onConfirm,
+                    onClick = { onConfirm(result.totalAmount) },
                     modifier = Modifier.weight(1f).height(48.dp),
                     shape = RoundedCornerShape(16.dp),
                     colors = ButtonDefaults.buttonColors(containerColor = BrandBlue)
