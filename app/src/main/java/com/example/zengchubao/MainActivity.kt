@@ -152,7 +152,7 @@ fun ZengChuBaoApp() {
                                 onNewDeposit = { currentScreen = Screen.NewDeposit }
                             )
                         },
-                        containerColor = androidx.compose.ui.graphics.Color(0xFFF0F4F8)
+                        containerColor = androidx.compose.ui.graphics.Color(0xFFF4F6FB)
                     ) { paddingValues ->
                         Box(
                             modifier = Modifier.padding(

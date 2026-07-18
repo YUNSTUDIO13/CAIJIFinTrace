@@ -43,7 +43,7 @@ private val EmeraldBg = Color(0xFFECFDF5)
 private val EmeraldText = Color(0xFF059669)
 private val AmberBg = Color(0xFFFFFBEB)
 private val RedBg = Color(0xFFFEF2F2)
-private val BgPage = Color(0xFFF0F4F8)
+private val BgPage = Color(0xFFF4F6FB)
 
 private val CN_NUMBER = NumberFormat.getNumberInstance(Locale.CHINA).apply {
     minimumFractionDigits = 2; maximumFractionDigits = 2
