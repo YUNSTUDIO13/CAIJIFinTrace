@@ -211,7 +211,7 @@ private fun DataMgmtScreen(onBack: () -> Unit,
                 SubListItem(Icons.Outlined.CloudUpload, "数据打包导出", "导出全部存单和配置数据",
                     Color(0xFFEFF6FF), Color(0xFF3B82F6)) {
                     scope.launch {
-                        val f = File(context.cacheDir, "zengchubao_${todayString()}.zip")
+                        val f = File(context.cacheDir, "FinTrace_${todayString()}.zip")
                         val ok = withContext(Dispatchers.IO) { storage.exportToZip(f) }
                         if (ok) {
                             showExportMsg = "导出成功"
