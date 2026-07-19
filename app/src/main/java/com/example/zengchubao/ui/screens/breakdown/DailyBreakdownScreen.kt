@@ -41,7 +41,6 @@ data class MonthlyIncome(val year: Int, val month: Int, val byDate: Map<String, 
 }
 
 fun dailyIncomeForDepositOnDate(dep: Deposit, date: String, today: String): Double {
-    if (dep.status != DepositStatus.HOLDING) return 0.0
     if (date < dep.startDate || date > dep.endDate) return 0.0
     if (date > today) return 0.0
     val basis = yearBasis(dep.calcMethod).toDouble()
@@ -119,8 +118,8 @@ fun DailyBreakdownScreen(
     deposits: List<Deposit>,
     onBack: () -> Unit
 ) {
-    val holding = remember(deposits) {
-        deposits.filter { it.status == DepositStatus.HOLDING }
+    val allDeposits = remember(deposits) {
+        deposits.filter { it.status != DepositStatus.ARCHIVED }
             .sortedBy { it.endDate }
     }
 
@@ -134,8 +133,8 @@ fun DailyBreakdownScreen(
     var selectedDate by remember { mutableStateOf(today) }
     var showMonthPicker by remember { mutableStateOf(false) }
 
-    val currentMonthly = remember(holding, currentYear, currentMonth, today) {
-        buildMonthlyIncome(holding, currentYear, currentMonth, today)
+    val currentMonthly = remember(allDeposits, currentYear, currentMonth, today) {
+        buildMonthlyIncome(allDeposits, currentYear, currentMonth, today)
     }
     val selectedEntry = currentMonthly.byDate[selectedDate] ?: DailyIncomeEntry(selectedDate, emptyList())
 
@@ -155,7 +154,7 @@ fun DailyBreakdownScreen(
             // 日历卡片
             item(key = "calendar") {
                 CalendarPager(
-                    holding = holding,
+                    holding = allDeposits,
                     today = today,
                     todayDay = if (currentYear == todayYear && currentMonth == todayMonth) todayDay else null,
                     currentYear = currentYear,

@@ -34,8 +34,8 @@ fun MonthPickerScreen(
     onBack: () -> Unit,
     onSelect: (Int, Int) -> Unit
 ) {
-    val holding = remember(deposits) { deposits.filter { it.status == DepositStatus.HOLDING } }
-    val activeMonths = remember(holding) { collectActiveMonths(holding) }
+    val allDeposits = remember(deposits) { deposits.filter { it.status != DepositStatus.ARCHIVED } }
+    val activeMonths = remember(allDeposits) { collectActiveMonths(allDeposits) }
     val byYear = activeMonths.groupBy { it.first }
     val years = activeMonths.map { it.first }.distinct().sortedDescending()
 
@@ -79,7 +79,7 @@ fun MonthPickerScreen(
                             ) {
                                 row.forEach { (_, m) ->
                                     MonthCard(
-                                        year = y, month = m, holding = holding,
+                                        year = y, month = m, holding = allDeposits,
                                         isCurrent = y == initialYear && m == initialMonth,
                                         onClick = { onSelect(y, m) },
                                         modifier = Modifier.weight(1f)
