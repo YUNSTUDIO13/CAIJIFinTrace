@@ -41,6 +41,10 @@ fun EarningsBreakdownScreen(
     mode: BreakdownMode,
     onBack: () -> Unit
 ) {
+    if (mode == BreakdownMode.DAILY) {
+        DailyBreakdownScreen(deposits = deposits, onBack = onBack)
+        return
+    }
     val holding = remember(deposits) {
         deposits.filter { it.status == DepositStatus.HOLDING }
             .sortedBy { it.endDate }
@@ -86,7 +90,6 @@ fun EarningsBreakdownScreen(
             Text("¥${CN_2.format(totalMetric)}", fontSize = 13.sp, fontWeight = FontWeight.W600,
                 color = Color(0xFF2563EB))
         }
-
         if (holding.isEmpty()) {
             Box(Modifier.fillMaxSize().padding(40.dp), contentAlignment = Alignment.Center) {
                 Text("暂无存单", color = Color(0xFF94A3B8), fontSize = 14.sp)
