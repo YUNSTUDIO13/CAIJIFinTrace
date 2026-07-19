@@ -63,15 +63,55 @@ fun MonthPickerScreen(
                         YearHeader(year = y, isCurrent = y == initialYear,
                             modifier = Modifier.padding(start = 20.dp, end = 20.dp, top = 16.dp, bottom = 8.dp))
                     }
-                    val months = byYear[y]?.sortedByDescending { it.second } ?: emptyList()
-                    items(months, key = { (yy, mm) -> "${yy}_$mm" }) { (_, m) ->
-                        MonthRow(year = y, month = m, holding = holding,
-                            isCurrent = y == initialYear && m == initialMonth,
-                            onClick = { onSelect(y, m) },
-                            modifier = Modifier.padding(start = 14.dp, end = 14.dp, bottom = 8.dp))
+                    val allMonths = byYear[y]?.sortedByDescending { it.second } ?: emptyList()
+                    val rows = allMonths.chunked(4)
+                    rows.forEach { row ->
+                        item(key = "row_${y}_${row.firstOrNull()?.second ?: 0}") {
+                            Row(
+                                modifier = Modifier.fillMaxWidth().padding(start = 14.dp, end = 14.dp, bottom = 6.dp),
+                                horizontalArrangement = Arrangement.spacedBy(6.dp)
+                            ) {
+                                row.forEach { (_, m) ->
+                                    MonthCard(
+                                        year = y, month = m, holding = holding,
+                                        isCurrent = y == initialYear && m == initialMonth,
+                                        onClick = { onSelect(y, m) },
+                                        modifier = Modifier.weight(1f)
+                                    )
+                                }
+                                // 填充不足 4 格的空位
+                                repeat(4 - row.size) {
+                                    Spacer(Modifier.weight(1f))
+                                }
+                            }
+                        }
                     }
                 }
             }
+        }
+    }
+}
+
+@Composable
+private fun MonthCard(
+    year: Int, month: Int, holding: List<Deposit>,
+    isCurrent: Boolean, onClick: () -> Unit, modifier: Modifier = Modifier
+) {
+    val monthly = remember(holding, year, month) { buildMonthlyIncome(holding, year, month, todayString()) }
+    Box(
+        modifier = modifier
+            .requiredHeight(52.dp)
+            .clip(RoundedCornerShape(8.dp))
+            .background(if (isCurrent) Color(0xFFEFF6FF) else Color(0xFFFAFBFC))
+            .clickable { onClick() },
+        contentAlignment = Alignment.Center
+    ) {
+        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+            Text("${month}月", fontSize = 12.sp, fontWeight = if (isCurrent) FontWeight.Bold else FontWeight.Medium,
+                color = if (isCurrent) Color(0xFF2563EB) else Color(0xFF1E293B))
+            Spacer(Modifier.height(2.dp))
+            Text("+¥${CN_2.format(monthly.monthTotal)}", fontSize = 8.sp, lineHeight = 9.sp,
+                color = Color(0xFFDC2626), fontWeight = FontWeight.SemiBold, maxLines = 1)
         }
     }
 }
@@ -85,56 +125,4 @@ private fun YearHeader(year: Int, isCurrent: Boolean, modifier: Modifier = Modif
             .let { if (isCurrent) it.background(Color(0xFFEFF6FF), RoundedCornerShape(999.dp))
                 .border(1.dp, Color(0xFFE2E8F0), RoundedCornerShape(999.dp))
                 .padding(horizontal = 12.dp, vertical = 2.dp) else it })
-}
-
-@Composable
-private fun MonthRow(
-    year: Int,
-    month: Int,
-    holding: List<Deposit>,
-    isCurrent: Boolean,
-    onClick: () -> Unit,
-    modifier: Modifier = Modifier
-) {
-    val monthly = remember(holding, year, month) { buildMonthlyIncome(holding, year, month, todayString()) }
-    val daysInM = daysInMonth(year, month)
-    Column(
-        modifier = modifier
-            .fillMaxWidth()
-            .clip(RoundedCornerShape(14.dp))
-            .background(Color.White)
-            .clickable { onClick() }
-            .padding(start = 14.dp, end = 14.dp, top = 10.dp, bottom = 10.dp)
-    ) {
-        // 第一行：X月（左） + 月份收益值（右）
-        Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                Text("${month}月", fontSize = 15.sp, fontWeight = FontWeight.SemiBold, color = Color(0xFF1E293B))
-                if (isCurrent) {
-                    Text("当前", fontSize = 9.sp, color = Color(0xFF2563EB), fontWeight = FontWeight.Medium,
-                        modifier = Modifier.background(Color(0xFFEFF6FF), RoundedCornerShape(999.dp))
-                            .border(1.dp, Color(0xFFE2E8F0), RoundedCornerShape(999.dp))
-                            .padding(horizontal = 8.dp, vertical = 2.dp))
-                }
-            }
-            Spacer(Modifier.weight(1f))
-            Text("+¥${CN_2.format(monthly.monthTotal)}",
-                fontSize = 11.sp, color = Color(0xFFDC2626), fontWeight = FontWeight.SemiBold)
-        }
-        // 第二行：热力图（方块）+ 年份（蓝色，11sp）
-        Row(modifier = Modifier.fillMaxWidth().padding(top = 2.dp), verticalAlignment = Alignment.CenterVertically) {
-            Row(horizontalArrangement = Arrangement.spacedBy(2.dp), modifier = Modifier.weight(1f)) {
-                for (d in 1..daysInM) {
-                    val date = "%04d-%02d-%02d".format(year, month, d)
-                    val has = monthly.byDate[date]?.hasIncome() == true
-                    Box(modifier = Modifier
-                        .size(5.dp)
-                        .clip(RoundedCornerShape(2.dp))
-                        .background(if (has) Color(0xFF2563EB) else Color(0xFFE2E8F0)))
-                }
-            }
-            Spacer(Modifier.width(8.dp))
-            Text("$year", fontSize = 11.sp, fontWeight = FontWeight.SemiBold, color = Color(0xFF2563EB))
-        }
-    }
 }
