@@ -1,5 +1,6 @@
 package com.example.zengchubao.ui.screens.breakdown
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.*
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -35,6 +36,8 @@ fun MonthPickerScreen(
     val activeMonths = remember(holding) { collectActiveMonths(holding) }
     val byYear = activeMonths.groupBy { it.first }
     val years = activeMonths.map { it.first }.distinct().sortedDescending()
+
+    BackHandler { onBack() }
 
     Column(modifier = Modifier.fillMaxSize().background(Color(0xFFF4F6FB)).statusBarsPadding()) {
         // 顶部返回栏
@@ -76,10 +79,11 @@ fun MonthPickerScreen(
 @Composable
 private fun YearHeader(year: Int, isCurrent: Boolean, modifier: Modifier = Modifier) {
     Text("$year",
-        fontSize = 11.sp, fontWeight = FontWeight.Bold,
+        fontSize = 15.sp, fontWeight = FontWeight.Bold,
         color = Color(0xFF2563EB),
         modifier = modifier
-            .let { if (isCurrent) it.background(Color(0xFFEFF6FF), RoundedCornerShape(8.dp))
+            .let { if (isCurrent) it.background(Color(0xFFEFF6FF), RoundedCornerShape(999.dp))
+                .border(1.dp, Color(0xFF1E40AF), RoundedCornerShape(999.dp))
                 .padding(horizontal = 12.dp, vertical = 2.dp) else it })
 }
 
@@ -109,8 +113,9 @@ private fun MonthRow(
                 Text("${month}月", fontSize = 15.sp, fontWeight = FontWeight.SemiBold, color = Color(0xFF1E293B))
                 if (isCurrent) {
                     Text("当前", fontSize = 9.sp, color = Color(0xFF2563EB), fontWeight = FontWeight.Medium,
-                        modifier = Modifier.background(Color(0xFFEFF6FF), RoundedCornerShape(4.dp))
-                            .padding(horizontal = 5.dp, vertical = 1.dp))
+                        modifier = Modifier.background(Color(0xFFEFF6FF), RoundedCornerShape(999.dp))
+                            .border(1.dp, Color(0xFF1E40AF), RoundedCornerShape(999.dp))
+                            .padding(horizontal = 8.dp, vertical = 2.dp))
                 }
             }
             Spacer(Modifier.weight(1f))

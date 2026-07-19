@@ -420,8 +420,8 @@ private fun DayCell(
 ) {
     val hasIncome = income > 0.0
     val bgColor = when {
-        isSelected -> Color(0xFFFEF3C7)            // 淡黄
-        hasIncome && isCurrentMonth -> Color(0xFFFEE2E2)  // 浅红
+        isSelected -> Color(0xFFFFF9E6)            // 淡黄（更浅）
+        hasIncome && isCurrentMonth -> Color(0xFFFEF2F2)  // 浅粉（更浅）
         isFuture -> Color(0xFFF8FAFC)
         !isCurrentMonth -> Color(0xFFFAFBFC)        // 邻月浅
         else -> Color.White
@@ -487,12 +487,15 @@ private fun DailyIncomeCard(
                 Text("+¥${CN_2.format(income)}", fontSize = 14.sp, fontWeight = FontWeight.Bold,
                     color = Color(0xFFDC2626))
             }
-            // L2: 银行名 · 利率
+            // L2: 银行名 · 利率 (左) | 本金 (右)
             Row(modifier = Modifier.fillMaxWidth().padding(top = 4.dp), verticalAlignment = Alignment.CenterVertically) {
                 Text(deposit.bankName, fontSize = 10.sp, color = Color(0xFF94A3B8))
                 Text(" · ", fontSize = 10.sp, color = Color(0xFFCBD5E1))
                 RateIcon(rate = deposit.annualRate, modifier = Modifier.size(10.dp), color = Color(0xFF94A3B8))
                 Text(" ${"%.2f".format(deposit.annualRate)}%", fontSize = 10.sp, color = Color(0xFF94A3B8))
+                Spacer(Modifier.weight(1f))
+                Text("¥${CN_2.format(deposit.principal)}", fontSize = 10.sp, fontWeight = FontWeight.Bold,
+                    color = Color(0xFF1E293B))
             }
             // L3: 起投日期-到期日期 | 预计到期时间
             Row(modifier = Modifier.fillMaxWidth().padding(top = 4.dp),
