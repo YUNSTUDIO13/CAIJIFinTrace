@@ -129,61 +129,51 @@ private fun BreakdownDepositCard(
 
     Card(
         modifier = modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(16.dp),
+        shape = RoundedCornerShape(14.dp),
         colors = CardDefaults.cardColors(containerColor = Color.White),
         elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
     ) {
-        Column(Modifier.fillMaxWidth().padding(start = 10.dp, end = 10.dp, top = 8.dp, bottom = 8.dp)) {
-
-            // L1: 产品名 + Badge | ¥本金
+        Column(Modifier.fillMaxWidth().padding(start = 12.dp, end = 12.dp, top = 10.dp, bottom = 10.dp)) {
+            // L1: 产品名 (左) | 利息 (右，红加粗)
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Row(verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(5.dp)) {
-                    Text(deposit.productName, fontSize = 13.sp, fontWeight = FontWeight.W600,
+                    Text(deposit.productName, fontSize = 13.sp, fontWeight = FontWeight.SemiBold,
                         color = Color(0xFF1E293B), maxLines = 1, overflow = TextOverflow.Ellipsis,
                         modifier = Modifier.weight(1f, fill = false))
                     if (isExpiringSoon) {
                         MiniBadge("即将到期", bg = Color(0xFFFEF3C7), fg = Color(0xFFD97706))
                     }
                 }
-                Spacer(Modifier.width(6.dp))
-                Text("¥${CN_INT.format(deposit.principal)}", fontSize = 14.sp,
-                    fontWeight = FontWeight.Bold, color = Color(0xFF1E293B))
+                Spacer(Modifier.weight(1f))
+                Text("+¥${CN_2.format(metricValue)}", fontSize = 14.sp, fontWeight = FontWeight.Bold,
+                    color = Color(0xFFDC2626))
             }
 
-            // L2: 银行名称 · 利率图标 利率 | 对应指标
+            // L2: 银行名 · 利率 (左) | 本金 (右，加粗)
             Row(
-                modifier = Modifier.fillMaxWidth().padding(top = 3.dp),
+                modifier = Modifier.fillMaxWidth().padding(top = 4.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(deposit.bankName, fontSize = 10.sp, color = Color(0xFF94A3B8))
+                Text(" · ", fontSize = 10.sp, color = Color(0xFFCBD5E1))
+                RateIcon(rate = deposit.annualRate, modifier = Modifier.size(10.dp), color = Color(0xFF94A3B8))
+                Text(" ${"%.2f".format(deposit.annualRate)}%", fontSize = 10.sp, color = Color(0xFF94A3B8))
+                Spacer(Modifier.weight(1f))
+                Text("¥${CN_2.format(deposit.principal)}", fontSize = 10.sp, fontWeight = FontWeight.Bold,
+                    color = Color(0xFF1E293B))
+            }
+
+            // L3: 起止日期 (左) | 倒计时 (右)
+            Row(
+                modifier = Modifier.fillMaxWidth().padding(top = 4.dp),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Row(verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                    Text(deposit.bankName, fontSize = 10.sp, color = Color(0xFF1E293B))
-                    Text(" · ", fontSize = 10.sp, color = Color(0xFF94A3B8))
-                    RateIcon(rate = deposit.annualRate, modifier = Modifier.size(10.dp), color = Color(0xFF1E293B))
-                    Text("${"%.2f".format(deposit.annualRate)}%", fontSize = 10.sp,
-                        fontWeight = FontWeight.W600, color = Color(0xFF1E293B))
-                }
-                Row(verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(3.dp)) {
-                    WalletIcon(modifier = Modifier.size(10.dp), tint = Color(0xFF1E293B))
-                    Text("¥${CN_2.format(metricValue)}", fontSize = 10.sp,
-                        fontWeight = FontWeight.Bold, color = Color(0xFF1E293B))
-                }
-            }
-
-            // L3: 起止日期 | xx天后到期
-            Row(
-                modifier = Modifier.fillMaxWidth().padding(top = 3.dp),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text("${deposit.startDate} ～ ${deposit.endDate}", fontSize = 10.sp, color = Color(0xFF94A3B8))
+                Text("${deposit.startDate} ~ ${deposit.endDate}", fontSize = 10.sp, color = Color(0xFF94A3B8))
                 val countdownText = when {
                     isExpired -> "已过期${-remainingDays}天"
                     isExpiringSoon -> "${remainingDays}天后到期"

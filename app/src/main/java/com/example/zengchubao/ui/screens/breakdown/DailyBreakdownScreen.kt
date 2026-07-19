@@ -6,6 +6,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -319,13 +320,15 @@ private fun CalendarCard(
     ) {
         // 顶部：左右箭头 + 年月标题 + 月合计
         Row(verticalAlignment = Alignment.CenterVertically) {
-            CompositionLocalProvider(LocalMinimumInteractiveComponentEnforcement provides false) {
-                IconButton(
-                    onClick = onPrevMonth,
-                    modifier = Modifier.size(32.dp).clip(RoundedCornerShape(16.dp)).background(Color(0xFF2563EB))
-                ) {
-                    Icon(Icons.Filled.ChevronLeft, "上月", tint = Color.White, modifier = Modifier.size(20.dp))
-                }
+            Box(
+                modifier = Modifier
+                    .size(28.dp)
+                    .clip(CircleShape)
+                    .background(Color(0xFF2563EB))
+                    .clickable { onPrevMonth() },
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(Icons.Filled.ChevronLeft, "上月", tint = Color.White, modifier = Modifier.size(18.dp))
             }
             Column(modifier = Modifier.weight(1f).clickable { onTapYearMonth() },
                 horizontalAlignment = Alignment.CenterHorizontally) {
@@ -335,13 +338,15 @@ private fun CalendarCard(
                     color = Color(0xFFDC2626), fontWeight = FontWeight.SemiBold,
                     textAlign = androidx.compose.ui.text.style.TextAlign.Center)
             }
-            CompositionLocalProvider(LocalMinimumInteractiveComponentEnforcement provides false) {
-                IconButton(
-                    onClick = onNextMonth,
-                    modifier = Modifier.size(32.dp).clip(RoundedCornerShape(16.dp)).background(Color(0xFF2563EB))
-                ) {
-                    Icon(Icons.Filled.ChevronRight, "下月", tint = Color.White, modifier = Modifier.size(20.dp))
-                }
+            Box(
+                modifier = Modifier
+                    .size(28.dp)
+                    .clip(CircleShape)
+                    .background(Color(0xFF2563EB))
+                    .clickable { onNextMonth() },
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(Icons.Filled.ChevronRight, "下月", tint = Color.White, modifier = Modifier.size(18.dp))
             }
         }
 
@@ -439,7 +444,7 @@ private fun DayCell(
     }
     Box(
         modifier = modifier
-            .height(44.dp)
+            .height(52.dp)
             .padding(2.dp)
             .clip(RoundedCornerShape(8.dp))
             .background(bgColor)
@@ -448,12 +453,11 @@ private fun DayCell(
         contentAlignment = Alignment.TopCenter
     ) {
         Column(horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Top,
             modifier = Modifier.padding(top = 4.dp)) {
             Text("$day", fontSize = 12.sp, color = textColor,
                 fontWeight = if (isToday || isSelected) FontWeight.Bold else FontWeight.Medium)
             if (isCurrentMonth && (hasIncome || isSelected)) {
-                Spacer(Modifier.height(1.dp))
+                Spacer(Modifier.height(2.dp))
                 Text(if (hasIncome) "+${CN_2.format(income)}" else "+0", fontSize = 8.sp,
                     color = incomeColor,
                     fontWeight = FontWeight.SemiBold, maxLines = 1)
