@@ -85,7 +85,11 @@ fun HomeScreen(
     }
 
     val assetBalance: Double = remember(bankFiltered) { calculateAssetBalance(bankFiltered) }
-    val annualExpectedYield: Double = remember(bankFiltered) { calculateAnnualExpectedYield(bankFiltered) }
+    val annualExpectedYield: Double = remember(deposits, selectedBanks) {
+        val filtered = if (selectedBanks.isEmpty()) deposits
+        else deposits.filter { it.bankName in selectedBanks }
+        calculateAnnualExpectedYield(filtered)
+    }
     val holdingTotalYield: Double = remember(bankFiltered) {
         bankFiltered.sumOf { calculateAccruedInterest(it.principal, it.annualRate, it.startDate, it.termDays, it.calcMethod) }
     }
