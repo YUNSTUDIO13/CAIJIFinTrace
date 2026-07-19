@@ -31,7 +31,7 @@ private val CN_2 = NumberFormat.getNumberInstance(Locale.CHINA).apply { minimumF
 enum class BreakdownMode(val title: String, val metricLabel: String) {
     DAILY("日收益", "日利息"),
     ANNUAL("今年预估收益", "今年预估收益"),
-    ACCUMULATED("累计收益", "历史已累计收益"),
+    ACCUMULATED("持有中累计收益", "历史已累计收益"),
     MATURITY("到期总收益", "到期利息")
 }
 
@@ -46,7 +46,12 @@ fun EarningsBreakdownScreen(
         return
     }
     val holding = remember(deposits, mode) {
-        deposits.sortedBy { it.endDate }
+        deposits
+            .filter {
+                if (mode == BreakdownMode.ANNUAL) true  // 今年预估：含已归档
+                else it.status != DepositStatus.ARCHIVED  // 持有中累计/到期：不含已归档
+            }
+            .sortedBy { it.endDate }
     }
 
     fun metricValue(dep: Deposit): Double {
