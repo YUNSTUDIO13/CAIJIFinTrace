@@ -205,11 +205,11 @@ fun NewDepositScreen(
 
             // ── 存单名称 ──
             SectionCard("存单名称") {
-                FormLabel("该名称将展示在列表中")
+                FormLabel("最多8字符")
                 Spacer(Modifier.height(8.dp))
                 FilledTextField(
                     value = productName,
-                    onValueChange = { productName = it },
+                    onValueChange = { if (it.length <= 8) productName = it },
                     placeholder = if (selectedBankName.isNotEmpty()) "${selectedBankName}定存" else "输入产品名称",
                     trailingIcon = if (productName.isNotEmpty()) {
                         { IconButton(onClick = { productName = "" }, modifier = Modifier.size(28.dp)) {
@@ -217,9 +217,6 @@ fun NewDepositScreen(
                         } }
                     } else null
                 )
-                Spacer(Modifier.height(8.dp))
-                Text("预览：${productName.ifEmpty { if (selectedBankName.isNotEmpty()) "${selectedBankName}定存" else "" }}",
-                    fontSize = 12.sp, color = TextTertiary)
             }
 
             // ── 本金与利率 ──
