@@ -85,7 +85,11 @@ fun ReportsScreen(
 ) {
     val holding = remember(deposits) { deposits.filter { it.status == DepositStatus.HOLDING } }
     val assetBalance = remember(holding) { calculateAssetBalance(holding) }
-    val totalYield = remember(holding) { calculateTotalMaturityYield(holding) }
+    val totalYield = remember(deposits) {
+        calculateTotalMaturityYield(
+            deposits.filter { it.status != DepositStatus.ARCHIVED }
+        )
+    }
     val totalDeposited = remember(holding) { holding.sumOf { it.principal } }
     val annualExpected = remember(deposits) { calculateAnnualExpectedYield(deposits) }
     val weightedRate = remember(holding) { calculateWeightedRate(holding) }

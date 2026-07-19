@@ -221,7 +221,7 @@ fun calculateAnnualExpectedYield(deposits: List<Deposit>): Double {
 // ── 到期总收益 ──
 
 fun calculateTotalMaturityYield(deposits: List<Deposit>): Double {
-    return deposits.filter { it.status == DepositStatus.HOLDING }
+    return deposits
         .sumOf { calculateMaturityInterest(it.principal, it.annualRate, it.termDays, it.calcMethod) }
 }
 
