@@ -121,6 +121,7 @@ fun DailyBreakdownScreen(
 ) {
     val holding = remember(deposits) {
         deposits.filter { it.status == DepositStatus.HOLDING }
+            .sortedBy { it.endDate }
     }
 
     val today = todayString()
@@ -499,36 +500,37 @@ private fun DailyIncomeCard(
         colors = CardDefaults.cardColors(containerColor = Color.White),
         elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
     ) {
-        Column(Modifier.fillMaxWidth().padding(start = 12.dp, end = 12.dp, top = 10.dp, bottom = 10.dp)) {
+        Column(Modifier.fillMaxWidth().padding(start = 12.dp, end = 12.dp, top = 6.dp, bottom = 6.dp),
+            verticalArrangement = Arrangement.spacedBy(7.dp)) {
             // L1: 产品名 (左，weight 1 填充) | 收益金额 (右，自然宽)
             Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                Text(deposit.productName, fontSize = 13.sp, fontWeight = FontWeight.SemiBold,
+                Text(deposit.productName, fontSize = 13.sp, lineHeight = 15.sp, fontWeight = FontWeight.SemiBold,
                     color = Color(0xFF1E293B), maxLines = 1, overflow = TextOverflow.Ellipsis,
                     modifier = Modifier.weight(1f))
-                Text("+¥${CN_2.format(income)}", fontSize = 14.sp, fontWeight = FontWeight.Bold,
+                Text("+¥${CN_2.format(income)}", fontSize = 14.sp, lineHeight = 16.sp, fontWeight = FontWeight.Bold,
                     color = Color(0xFFDC2626))
             }
             // L2: 银行名 · 利率 (左) | 本金 (右)
-            Row(modifier = Modifier.fillMaxWidth().padding(top = 4.dp), verticalAlignment = Alignment.CenterVertically) {
-                Text(deposit.bankName, fontSize = 10.sp, color = Color(0xFF94A3B8))
-                Text(" · ", fontSize = 10.sp, color = Color(0xFFCBD5E1))
+            Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                Text(deposit.bankName, fontSize = 10.sp, lineHeight = 12.sp, color = Color(0xFF94A3B8))
+                Text(" · ", fontSize = 10.sp, lineHeight = 12.sp, color = Color(0xFFCBD5E1))
                 RateIcon(rate = deposit.annualRate, modifier = Modifier.size(10.dp), color = Color(0xFF94A3B8))
-                Text(" ${"%.2f".format(deposit.annualRate)}%", fontSize = 10.sp, color = Color(0xFF94A3B8))
+                Text(" ${"%.2f".format(deposit.annualRate)}%", fontSize = 10.sp, lineHeight = 12.sp, color = Color(0xFF94A3B8))
                 Spacer(Modifier.weight(1f))
-                Text("¥${CN_2.format(deposit.principal)}", fontSize = 10.sp, fontWeight = FontWeight.Bold,
+                Text("¥${CN_2.format(deposit.principal)}", fontSize = 10.sp, lineHeight = 12.sp, fontWeight = FontWeight.Bold,
                     color = Color(0xFF1E293B))
             }
             // L3: 起投日期-到期日期 | 预计到期时间
-            Row(modifier = Modifier.fillMaxWidth().padding(top = 4.dp),
+            Row(modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-                Text("${deposit.startDate} ~ ${deposit.endDate}", fontSize = 10.sp, color = Color(0xFF94A3B8))
+                Text("${deposit.startDate} ~ ${deposit.endDate}", fontSize = 10.sp, lineHeight = 12.sp, color = Color(0xFF94A3B8))
                 val countdownText = when {
                     isExpired -> "已过期${-remainingDays}天"
                     isExpiringSoon -> "${remainingDays}天后到期"
                     remainingDays == 0 -> "今日到期"
                     else -> "${remainingDays}天后到期"
                 }
-                Text(countdownText, fontSize = 9.sp,
+                Text(countdownText, fontSize = 9.sp, lineHeight = 11.sp,
                     color = if (isExpired) Color(0xFFF87171)
                     else if (isExpiringSoon) Color(0xFFF59E0B)
                     else Color(0xFF94A3B8))
