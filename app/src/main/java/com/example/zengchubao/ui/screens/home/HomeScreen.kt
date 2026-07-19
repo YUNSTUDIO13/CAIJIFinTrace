@@ -241,7 +241,7 @@ fun HomeScreen(
         ) {
             Text("财迹FinTrace", fontSize = 19.sp, fontWeight = FontWeight.Bold, color = Color(0xFF1E293B), lineHeight = 19.sp)
             Spacer(Modifier.height(2.dp))
-            Text("跨行存单，一览全迹", fontSize = 10.sp, lineHeight = 10.sp, color = Color(0xFF94A3B8))
+            Text("跨行存单，一览全迹", fontSize = 10.sp, lineHeight = 12.sp, lineHeight = 10.sp, color = Color(0xFF94A3B8))
         }
     }
 }
@@ -289,7 +289,7 @@ fun TimePillChip(label: String, selected: Boolean, activeTextColor: Color, onCli
             .clickable { onClick() }
             .padding(horizontal = 10.dp, vertical = 0.dp)
     ) {
-        Text(label, fontSize = 10.sp, fontWeight = FontWeight.W600,
+        Text(label, fontSize = 10.sp, lineHeight = 12.sp, fontWeight = FontWeight.W600,
             color = if (selected) Color.White else activeTextColor)
     }
 }
@@ -347,7 +347,7 @@ fun RefDepositCard(deposit: Deposit, onClick: () -> Unit, modifier: Modifier = M
             ) {
                 Row(verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(5.dp)) {
-                    Text(deposit.productName, fontSize = 13.sp, fontWeight = FontWeight.W600,
+                    Text(deposit.productName, fontSize = 13.sp, lineHeight = 15.sp, fontWeight = FontWeight.W600,
                         color = Color(0xFF1E293B), maxLines = 1, overflow = TextOverflow.Ellipsis,
                         modifier = Modifier.weight(1f, fill = false))
                     if (isExpiringSoon) {
@@ -355,7 +355,7 @@ fun RefDepositCard(deposit: Deposit, onClick: () -> Unit, modifier: Modifier = M
                     }
                 }
                 Spacer(Modifier.width(6.dp))
-                Text("¥${CN_INT.format(deposit.principal)}", fontSize = 14.sp,
+                Text("¥${CN_INT.format(deposit.principal)}", fontSize = 14.sp, lineHeight = 16.sp,
                     fontWeight = FontWeight.Bold, color = Color(0xFF1E293B))
             }
 
@@ -367,16 +367,16 @@ fun RefDepositCard(deposit: Deposit, onClick: () -> Unit, modifier: Modifier = M
             ) {
                 Row(verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                    Text(deposit.bankName, fontSize = 10.sp, color = Color(0xFF1E293B))
-                    Text(" · ", fontSize = 10.sp, color = Color(0xFF94A3B8))
+                    Text(deposit.bankName, fontSize = 10.sp, lineHeight = 12.sp, color = Color(0xFF1E293B))
+                    Text(" · ", fontSize = 10.sp, lineHeight = 12.sp, color = Color(0xFF94A3B8))
                     RateIcon(rate = deposit.annualRate, modifier = Modifier.size(10.dp), color = Color(0xFF1E293B))
-                    Text("${"%.2f".format(deposit.annualRate)}%", fontSize = 10.sp,
+                    Text("${"%.2f".format(deposit.annualRate)}%", fontSize = 10.sp, lineHeight = 12.sp,
                         fontWeight = FontWeight.W600, color = Color(0xFF1E293B))
                 }
                 Row(verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(3.dp)) {
                     WalletIcon(modifier = Modifier.size(10.dp), tint = Color(0xFF1E293B))
-                    Text("+¥${CN_INT.format(interestAmount)}", fontSize = 10.sp,
+                    Text("+¥${CN_INT.format(interestAmount)}", fontSize = 10.sp, lineHeight = 12.sp,
                         fontWeight = FontWeight.Bold, color = Color(0xFFDC2626))
                 }
             }
@@ -387,14 +387,14 @@ fun RefDepositCard(deposit: Deposit, onClick: () -> Unit, modifier: Modifier = M
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Text("${deposit.startDate} ～ ${deposit.endDate}", fontSize = 10.sp, color = Color(0xFF94A3B8))
+                Text("${deposit.startDate} ～ ${deposit.endDate}", fontSize = 10.sp, lineHeight = 12.sp, color = Color(0xFF94A3B8))
                 val countdownText = when {
                     isExpired -> "已过期${-remainingDays}天"
                     isExpiringSoon -> "${remainingDays}天后到期"
                     remainingDays == 0 -> "今日到期"
                     else -> "${remainingDays}天后到期"
                 }
-                Text(countdownText, fontSize = 9.sp, color = dateColor)
+                Text(countdownText, fontSize = 9.sp, lineHeight = 11.sp, color = dateColor)
             }
         }
     }
