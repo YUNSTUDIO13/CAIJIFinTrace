@@ -101,6 +101,18 @@ fun collectActiveMonths(holding: List<Deposit>): List<Pair<Int, Int>> {
     return months.toList().sortedWith(compareByDescending<Pair<Int, Int>> { it.first }.thenByDescending { it.second })
 }
 
+/** 大数缩写：<100 保留 2 位小数；<1000 取整；<10000 → k；≥10000 → w。 */
+fun formatProfit(value: Double): String {
+    val sign = if (value >= 0) "+" else ""
+    val absValue = kotlin.math.abs(value)
+    return when {
+        absValue < 100 -> "$sign${"%.2f".format(value)}"          // +51.68 / -9.37
+        absValue < 1000 -> "$sign${value.toInt()}"                 // 过百取整 +201
+        absValue < 10000 -> "$sign${"%.2fk".format(value / 1000)}" // +1.65k
+        else -> "$sign${"%.2fw".format(value / 10000)}"            // +2.08w
+    }
+}
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun DailyBreakdownScreen(
@@ -388,7 +400,8 @@ private fun CalendarCard(
         }
 
         for (row in 0 until 6) {
-            Row(modifier = Modifier.fillMaxWidth()) {
+            Row(modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(2.dp)) {
                 for (col in 0 until 7) {
                     val idx = row * 7 + col
                     val (d, date, isCurrent) = cells[idx]
@@ -459,7 +472,7 @@ private fun DayCell(
                 fontWeight = if (isToday || isSelected) FontWeight.Bold else FontWeight.Medium)
             if (isCurrentMonth && (hasIncome || isSelected)) {
                 Spacer(Modifier.height(2.dp))
-                Text(if (hasIncome) "+${CN_2.format(income)}" else "+0", fontSize = 8.sp, lineHeight = 9.sp,
+                Text(formatProfit(income), fontSize = 8.sp, lineHeight = 9.sp,
                     color = incomeColor,
                     fontWeight = FontWeight.SemiBold, maxLines = 1)
             }
