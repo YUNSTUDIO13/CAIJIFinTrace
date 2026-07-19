@@ -4,7 +4,6 @@ import androidx.compose.foundation.*
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -77,7 +76,7 @@ fun MonthPickerScreen(
 @Composable
 private fun YearHeader(year: Int, isCurrent: Boolean, modifier: Modifier = Modifier) {
     Text("$year",
-        fontSize = 14.sp, fontWeight = FontWeight.Bold,
+        fontSize = 8.sp, fontWeight = FontWeight.Bold,
         color = Color(0xFF2563EB),
         modifier = modifier
             .let { if (isCurrent) it.background(Color(0xFFEFF6FF), RoundedCornerShape(8.dp))
@@ -104,7 +103,7 @@ private fun MonthRow(
             .clickable { onClick() }
             .padding(start = 14.dp, end = 14.dp, top = 12.dp, bottom = 10.dp)
     ) {
-        // 第一行：X月 + 月份收益合计（两端对齐）
+        // 第一行：X月（左） + 月份收益值（右）
         Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                 Text("${month}月", fontSize = 15.sp, fontWeight = FontWeight.SemiBold, color = Color(0xFF1E293B))
@@ -115,10 +114,10 @@ private fun MonthRow(
                 }
             }
             Spacer(Modifier.weight(1f))
-            Text("月份收益合计 +¥${CN_2.format(monthly.monthTotal)}",
-                fontSize = 12.sp, color = Color(0xFFDC2626), fontWeight = FontWeight.SemiBold)
+            Text("+¥${CN_2.format(monthly.monthTotal)}",
+                fontSize = 8.sp, color = Color(0xFFDC2626), fontWeight = FontWeight.SemiBold)
         }
-        // 第二行：热力图 + 年份（年份右对齐，蓝色）
+        // 第二行：热力图（方块）+ 年份（蓝色，8sp）
         Row(modifier = Modifier.fillMaxWidth().padding(top = 8.dp), verticalAlignment = Alignment.CenterVertically) {
             Row(horizontalArrangement = Arrangement.spacedBy(2.dp), modifier = Modifier.weight(1f)) {
                 for (d in 1..daysInM) {
@@ -126,12 +125,12 @@ private fun MonthRow(
                     val has = monthly.byDate[date]?.hasIncome() == true
                     Box(modifier = Modifier
                         .size(5.dp)
-                        .clip(CircleShape)
+                        .clip(RoundedCornerShape(2.dp))
                         .background(if (has) Color(0xFF2563EB) else Color(0xFFE2E8F0)))
                 }
             }
             Spacer(Modifier.width(8.dp))
-            Text("$year", fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = Color(0xFF2563EB))
+            Text("$year", fontSize = 8.sp, fontWeight = FontWeight.SemiBold, color = Color(0xFF2563EB))
         }
     }
 }

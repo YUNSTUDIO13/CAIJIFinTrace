@@ -6,7 +6,6 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -29,19 +28,16 @@ import java.util.Locale
 
 private val CN_2 = NumberFormat.getNumberInstance(Locale.CHINA).apply { minimumFractionDigits = 2; maximumFractionDigits = 2 }
 
-/** 单日收益：日期 → 当日有收益的存单列表（每条带收益金额） */
 data class DailyIncomeEntry(val date: String, val deposits: List<Pair<Deposit, Double>>) {
     val total: Double get() = deposits.sumOf { it.second }
     fun hasIncome(): Boolean = deposits.isNotEmpty()
 }
 
-/** 月度数据：年-月 → 当月每日收益 */
 data class MonthlyIncome(val year: Int, val month: Int, val byDate: Map<String, DailyIncomeEntry>) {
     val monthTotal: Double get() = byDate.values.sumOf { it.total }
     val activeDays: Int get() = byDate.values.count { it.hasIncome() }
 }
 
-/** 每日单存单收益（仅持有中，仅今日及之前） */
 fun dailyIncomeForDepositOnDate(dep: Deposit, date: String, today: String): Double {
     if (dep.status != DepositStatus.HOLDING) return 0.0
     if (date < dep.startDate || date > dep.endDate) return 0.0
@@ -50,7 +46,6 @@ fun dailyIncomeForDepositOnDate(dep: Deposit, date: String, today: String): Doub
     return dep.principal * (dep.annualRate / 100.0) / basis
 }
 
-/** 构建某年某月每天的收益明细 */
 fun buildMonthlyIncome(holding: List<Deposit>, year: Int, month: Int, today: String): MonthlyIncome {
     val daysInMonth = daysInMonth(year, month)
     val byDate = mutableMapOf<String, DailyIncomeEntry>()
@@ -69,7 +64,6 @@ fun buildMonthlyIncome(holding: List<Deposit>, year: Int, month: Int, today: Str
     return MonthlyIncome(year, month, byDate)
 }
 
-/** 指定年-月有多少天 */
 fun daysInMonth(year: Int, month: Int): Int {
     val nextMonth = if (month == 12) Pair(year + 1, 1) else Pair(year, month + 1)
     val firstOfNext = "%04d-%02d-01".format(nextMonth.first, nextMonth.second)
@@ -77,16 +71,14 @@ fun daysInMonth(year: Int, month: Int): Int {
     return lastOfThis.substring(8, 10).toInt()
 }
 
-/** 某年某月1日是星期几 → 返回 [0..6] 偏移（日一二三四五六） */
 fun firstDayOfMonthOffset(year: Int, month: Int): Int {
     val ymd = "%04d-%02d-01".format(year, month)
     val parts = ymd.split("-").map { it.toInt() }
     val cal = java.util.GregorianCalendar(parts[0], parts[1] - 1, parts[2])
-    val dow = cal.get(java.util.Calendar.DAY_OF_WEEK) // 1=Sun..7=Sat
+    val dow = cal.get(java.util.Calendar.DAY_OF_WEEK)
     return if (dow == java.util.Calendar.SUNDAY) 0 else dow - 1
 }
 
-/** 提取所有有收益的年月（按时间倒序） */
 fun collectActiveMonths(holding: List<Deposit>): List<Pair<Int, Int>> {
     if (holding.isEmpty()) return emptyList()
     val months = mutableSetOf<Pair<Int, Int>>()
@@ -144,7 +136,6 @@ fun DailyBreakdownScreen(
             Text("日收益明细", fontSize = 17.sp, fontWeight = FontWeight.Bold, color = Color(0xFF1E293B))
         }
 
-        // 可滚动内容：日历 + 下方明细
         LazyColumn(modifier = Modifier.fillMaxSize(), contentPadding = PaddingValues(bottom = 90.dp)) {
             // 日历卡片
             item(key = "calendar") {
@@ -155,7 +146,6 @@ fun DailyBreakdownScreen(
                     selectedDate = selectedDate,
                     onSelectDate = { date ->
                         selectedDate = date
-                        // 从 date 提取年月
                         val parts = date.split("-")
                         if (parts.size == 3) {
                             currentYear = parts[0].toInt()
@@ -164,26 +154,35 @@ fun DailyBreakdownScreen(
                     },
                     onCurrentMonthChange = { y, m ->
                         currentYear = y; currentMonth = m
-                        // 切换月后默认选中该月今日（如果存在），否则 1 号
                         selectedDate = if (y == todayYear && m == todayMonth) today
                         else "%04d-%02d-01".format(y, m)
                     },
                     onTapYearMonth = { showMonthPicker = true },
+                    onPrevMonth = {
+                        val prev = if (currentMonth == 1) Pair(currentYear - 1, 12) else Pair(currentYear, currentMonth - 1)
+                        currentYear = prev.first; currentMonth = prev.second
+                        selectedDate = if (prev.first == todayYear && prev.second == todayMonth) today
+                        else "%04d-%02d-01".format(prev.first, prev.second)
+                    },
+                    onNextMonth = {
+                        val next = if (currentMonth == 12) Pair(currentYear + 1, 1) else Pair(currentYear, currentMonth + 1)
+                        currentYear = next.first; currentMonth = next.second
+                        selectedDate = if (next.first == todayYear && next.second == todayMonth) today
+                        else "%04d-%02d-01".format(next.first, next.second)
+                    },
                     modifier = Modifier.padding(start = 14.dp, end = 14.dp, top = 4.dp)
                 )
             }
 
-            // 下方明细行
+            // 下方明细行：仅日期·日收益 8sp（去合计）
             item(key = "summary_row") {
                 Row(
-                    modifier = Modifier.fillMaxWidth().padding(start = 18.dp, end = 18.dp, top = 16.dp, bottom = 6.dp),
+                    modifier = Modifier.fillMaxWidth().padding(start = 18.dp, end = 18.dp, top = 12.dp, bottom = 6.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     val dateLabel = formatDateLong(selectedDate)
-                    Text("${dateLabel} · 日收益", fontSize = 13.sp, fontWeight = FontWeight.SemiBold,
-                        color = Color(0xFF1E293B), modifier = Modifier.weight(1f))
-                    Text("合计 +¥${CN_2.format(selectedEntry.total)}", fontSize = 12.sp, fontWeight = FontWeight.Bold,
-                        color = Color(0xFFDC2626))
+                    Text("${dateLabel} · 日收益", fontSize = 8.sp, fontWeight = FontWeight.SemiBold,
+                        color = Color(0xFF1E293B))
                 }
             }
 
@@ -230,13 +229,14 @@ private fun CalendarPager(
     onSelectDate: (String) -> Unit,
     onCurrentMonthChange: (Int, Int) -> Unit,
     onTapYearMonth: () -> Unit,
+    onPrevMonth: () -> Unit,
+    onNextMonth: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     val todayYear = today.substring(0, 4).toInt()
     val todayMonth = today.substring(5, 7).toInt()
     val pagerState = rememberPagerState(initialPage = 500) { 1000 }
 
-    // 监听 pager 切换
     LaunchedEffect(pagerState) {
         snapshotFlow { pagerState.settledPage }.collect { page ->
             val diff = page - 500
@@ -268,7 +268,9 @@ private fun CalendarPager(
             todayDay = if (y == todayYear && m == todayMonth) todayDay else null,
             selectedDate = selectedDate,
             onSelectDate = onSelectDate,
-            onTapYearMonth = onTapYearMonth
+            onTapYearMonth = onTapYearMonth,
+            onPrevMonth = onPrevMonth,
+            onNextMonth = onNextMonth
         )
     }
 }
@@ -282,12 +284,16 @@ private fun CalendarCard(
     todayDay: Int?,
     selectedDate: String,
     onSelectDate: (String) -> Unit,
-    onTapYearMonth: () -> Unit
+    onTapYearMonth: () -> Unit,
+    onPrevMonth: () -> Unit,
+    onNextMonth: () -> Unit
 ) {
     val daysCount = daysInMonth(year, month)
     val firstOffset = firstDayOfMonthOffset(year, month)
-    val totalCells = firstOffset + daysCount
-    val weeks = (totalCells + 6) / 7
+    // 上月日期填充：6 行固定 × 7 列 = 42 格
+    val prevMonthDays = daysInMonth(if (month == 1) year - 1 else year, if (month == 1) 12 else month - 1)
+    val leadingCount = firstOffset
+    val trailingCount = 42 - leadingCount - daysCount
 
     Column(
         modifier = Modifier
@@ -295,60 +301,91 @@ private fun CalendarCard(
             .clip(RoundedCornerShape(20.dp))
             .background(Color.White)
             .border(0.6.dp, Color(0xFFE2E8F0), RoundedCornerShape(20.dp))
-            .padding(14.dp)
+            .padding(start = 14.dp, end = 14.dp, top = 14.dp, bottom = 14.dp)
     ) {
-        // 年-月 + 月合计
+        // 顶部：左右箭头 + 年月标题
         Row(verticalAlignment = Alignment.CenterVertically) {
-            Spacer(Modifier.weight(1f))
-            Column(modifier = Modifier.weight(2f), horizontalAlignment = Alignment.CenterHorizontally) {
-                Text("${year}年${month}月", fontSize = 16.sp, fontWeight = FontWeight.Bold,
-                    color = Color(0xFF1E293B), modifier = Modifier.clickable { onTapYearMonth() })
-                Text("月合计 +¥${CN_2.format(monthly.monthTotal)}", fontSize = 11.sp,
-                    color = Color(0xFFDC2626), fontWeight = FontWeight.SemiBold)
+            Box(
+                modifier = Modifier
+                    .size(32.dp)
+                    .clip(RoundedCornerShape(16.dp))
+                    .background(Color(0xFF2563EB))
+                    .clickable { onPrevMonth() },
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(Icons.Filled.ChevronLeft, "上月", tint = Color.White, modifier = Modifier.size(20.dp))
             }
-            Spacer(Modifier.weight(1f))
+            Text("${year}年${month}月", fontSize = 18.sp, fontWeight = FontWeight.Bold,
+                color = Color(0xFF1E293B),
+                modifier = Modifier.weight(1f).clickable { onTapYearMonth() },
+                textAlign = androidx.compose.ui.text.style.TextAlign.Center)
+            Box(
+                modifier = Modifier
+                    .size(32.dp)
+                    .clip(RoundedCornerShape(16.dp))
+                    .background(Color(0xFF2563EB))
+                    .clickable { onNextMonth() },
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(Icons.Filled.ChevronRight, "下月", tint = Color.White, modifier = Modifier.size(20.dp))
+            }
         }
 
         Spacer(Modifier.height(10.dp))
 
         // 星期表头
         Row(modifier = Modifier.fillMaxWidth()) {
-            listOf("日", "一", "二", "三", "四", "五", "六").forEach { d ->
+            listOf("周日", "周一", "周二", "周三", "周四", "周五", "周六").forEach { d ->
                 Text(d, modifier = Modifier.weight(1f), textAlign = androidx.compose.ui.text.style.TextAlign.Center,
-                    fontSize = 11.sp, color = Color(0xFF94A3B8), fontWeight = FontWeight.Medium)
+                    fontSize = 9.sp, color = Color(0xFF94A3B8), fontWeight = FontWeight.Medium)
             }
         }
 
-        Spacer(Modifier.height(6.dp))
+        Spacer(Modifier.height(4.dp))
 
-        // 日期格子
-        var dayCounter = 1
-        for (week in 0 until weeks) {
+        // 6 行固定
+        val cells = mutableListOf<Triple<Int, String, Boolean>>()  // (day, date, isCurrentMonth)
+        // 上月填充
+        for (i in 0 until leadingCount) {
+            val d = prevMonthDays - leadingCount + 1 + i
+            val py = if (month == 1) year - 1 else year
+            val pm = if (month == 1) 12 else month - 1
+            val date = "%04d-%02d-%02d".format(py, pm, d)
+            cells.add(Triple(d, date, false))
+        }
+        // 当月
+        for (d in 1..daysCount) {
+            val date = "%04d-%02d-%02d".format(year, month, d)
+            cells.add(Triple(d, date, true))
+        }
+        // 下月填充
+        val ny = if (month == 12) year + 1 else year
+        val nm = if (month == 12) 1 else month + 1
+        for (i in 1..trailingCount) {
+            val date = "%04d-%02d-%02d".format(ny, nm, i)
+            cells.add(Triple(i, date, false))
+        }
+
+        for (row in 0 until 6) {
             Row(modifier = Modifier.fillMaxWidth()) {
-                for (dow in 0 until 7) {
-                    val cellIndex = week * 7 + dow
-                    if (cellIndex < firstOffset || dayCounter > daysCount) {
-                        Box(modifier = Modifier.weight(1f).height(62.dp))
-                    } else {
-                        val d = dayCounter
-                        val date = "%04d-%02d-%02d".format(year, month, d)
-                        val entry = monthly.byDate[date]
-                        val income = entry?.total ?: 0.0
-                        val isSelected = date == selectedDate
-                        val isToday = d == todayDay && year.toString() + "-" +
-                            (if (month < 10) "0$month" else "$month") == today.take(7)
-                        val isFuture = date > today
-                        DayCell(
-                            day = d,
-                            income = income,
-                            isSelected = isSelected,
-                            isToday = isToday,
-                            isFuture = isFuture,
-                            onClick = { onSelectDate(date) },
-                            modifier = Modifier.weight(1f)
-                        )
-                        dayCounter++
-                    }
+                for (col in 0 until 7) {
+                    val idx = row * 7 + col
+                    val (d, date, isCurrent) = cells[idx]
+                    val isSelected = date == selectedDate
+                    val entry = monthly.byDate[date]
+                    val income = entry?.total ?: 0.0
+                    val isToday = isCurrent && d == todayDay && date == today
+                    val isFuture = isCurrent && date > today
+                    DayCell(
+                        day = d,
+                        income = income,
+                        isCurrentMonth = isCurrent,
+                        isSelected = isSelected,
+                        isToday = isToday,
+                        isFuture = isFuture,
+                        onClick = { onSelectDate(date) },
+                        modifier = Modifier.weight(1f)
+                    )
                 }
             }
         }
@@ -359,6 +396,7 @@ private fun CalendarCard(
 private fun DayCell(
     day: Int,
     income: Double,
+    isCurrentMonth: Boolean,
     isSelected: Boolean,
     isToday: Boolean,
     isFuture: Boolean,
@@ -367,42 +405,44 @@ private fun DayCell(
 ) {
     val hasIncome = income > 0.0
     val bgColor = when {
-        isSelected -> Color(0xFFDC2626)
-        hasIncome -> Color(0xFFFEE2E2)
-        isFuture -> Color(0xFFF1F5F9)
+        isSelected -> Color(0xFFFEF3C7)            // 淡黄
+        hasIncome && isCurrentMonth -> Color(0xFFFEE2E2)  // 浅红
+        isFuture -> Color(0xFFF8FAFC)
+        !isCurrentMonth -> Color(0xFFFAFBFC)        // 邻月浅
         else -> Color.White
     }
     val textColor = when {
-        isSelected -> Color.White
+        isSelected -> Color(0xFF1E293B)
+        !isCurrentMonth -> Color(0xFFCBD5E1)
         isFuture -> Color(0xFFCBD5E1)
+        isToday -> Color(0xFFDC2626)
         else -> Color(0xFF1E293B)
     }
     val incomeColor = when {
-        isSelected -> Color.White
+        isSelected -> Color(0xFFDC2626)
         hasIncome -> Color(0xFFDC2626)
         else -> Color(0xFF94A3B8)
     }
     Box(
         modifier = modifier
-            .height(62.dp)
+            .height(58.dp)
             .padding(2.dp)
             .clip(RoundedCornerShape(8.dp))
             .background(bgColor)
-            .clickable { onClick() }
-            .border(
-                width = if (isToday && !isSelected) 1.2.dp else 0.dp,
-                color = Color(0xFFDC2626),
-                shape = RoundedCornerShape(8.dp)
-            ),
-        contentAlignment = Alignment.Center
+            // 描边色 = 底色（视觉无边框）
+            .border(0.5.dp, bgColor, RoundedCornerShape(8.dp))
+            .clickable { onClick() },
+        contentAlignment = Alignment.TopCenter
     ) {
-        Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Top,
-            modifier = Modifier.padding(top = 6.dp)) {
-            Text("$day", fontSize = 13.sp, color = textColor, fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium)
-            if (hasIncome || isSelected) {
+        Column(horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Top,
+            modifier = Modifier.padding(top = 4.dp)) {
+            Text("$day", fontSize = 12.sp, color = textColor,
+                fontWeight = if (isToday || isSelected) FontWeight.Bold else FontWeight.Medium)
+            if (isCurrentMonth && (hasIncome || isSelected)) {
                 Spacer(Modifier.height(1.dp))
-                Text(if (hasIncome) "+${CN_2.format(income)}" else "+0", fontSize = 8.sp,
-                    color = if (isSelected) Color.White.copy(alpha = 0.85f) else incomeColor,
+                Text(if (hasIncome) "+${CN_2.format(income)}" else "+0", fontSize = 7.sp,
+                    color = incomeColor,
                     fontWeight = FontWeight.SemiBold, maxLines = 1)
             }
         }
