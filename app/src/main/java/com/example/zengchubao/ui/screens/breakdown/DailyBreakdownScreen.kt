@@ -168,9 +168,11 @@ fun DailyBreakdownScreen(
                         }
                     },
                     onCurrentMonthChange = { y, m ->
-                        currentYear = y; currentMonth = m
-                        selectedDate = if (y == todayYear && m == todayMonth) today
-                        else "%04d-%02d-01".format(y, m)
+                        if (y != currentYear || m != currentMonth) {
+                            currentYear = y; currentMonth = m
+                            selectedDate = if (y == todayYear && m == todayMonth) today
+                            else "%04d-%02d-01".format(y, m)
+                        }
                     },
                     onTapYearMonth = { showMonthPicker = true },
                     onPrevMonth = {
