@@ -63,7 +63,7 @@ fun MonthPickerScreen(
                         YearHeader(year = y, isCurrent = y == initialYear,
                             modifier = Modifier.padding(start = 20.dp, end = 20.dp, top = 16.dp, bottom = 8.dp))
                     }
-                    val months = byYear[y]?.sortedBy { it.second } ?: emptyList()
+                    val months = byYear[y]?.sortedByDescending { it.second } ?: emptyList()
                     items(months, key = { (yy, mm) -> "${yy}_$mm" }) { (_, m) ->
                         MonthRow(year = y, month = m, holding = holding,
                             isCurrent = y == initialYear && m == initialMonth,

@@ -186,7 +186,9 @@ fun DailyBreakdownScreen(
                 ) {
                     val dateLabel = formatDateLong(selectedDate)
                     Text("${dateLabel} · 日收益", fontSize = 11.sp, fontWeight = FontWeight.SemiBold,
-                        color = Color(0xFF1E293B))
+                        color = Color(0xFF1E293B), modifier = Modifier.weight(1f))
+                    Text("${selectedEntry.deposits.size}单", fontSize = 11.sp, fontWeight = FontWeight.SemiBold,
+                        color = Color(0xFF94A3B8))
                 }
             }
 
@@ -449,8 +451,7 @@ private fun DayCell(
             .clip(RoundedCornerShape(8.dp))
             .background(bgColor)
             .border(0.5.dp, bgColor, RoundedCornerShape(8.dp))
-            .clickable { onClick() },
-        contentAlignment = Alignment.TopCenter
+            .clickable { onClick() }
     ) {
         Column(horizontalAlignment = Alignment.CenterHorizontally,
             modifier = Modifier.padding(top = 4.dp)) {
