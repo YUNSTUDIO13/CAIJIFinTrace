@@ -330,10 +330,7 @@ fun RefDepositCard(deposit: Deposit, onClick: () -> Unit, modifier: Modifier = M
         isExpiringSoon -> Color(0xFFF59E0B)
         else -> Color(0xFF64748B)
     }
-    val interestAmount = if (deposit.status == DepositStatus.MATURED)
-        deposit.maturityAmount - deposit.principal
-    else
-        calculateMaturityInterest(deposit.principal, deposit.annualRate, deposit.termDays)
+    val interestAmount = calculateMaturityInterest(deposit.principal, deposit.annualRate, deposit.termDays, deposit.calcMethod)
 
     Card(onClick = onClick, modifier = modifier.fillMaxWidth(),
         shape = RoundedCornerShape(16.dp),

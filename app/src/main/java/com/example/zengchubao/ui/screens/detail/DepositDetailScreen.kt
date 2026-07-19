@@ -203,9 +203,9 @@ fun DepositDetailScreen(
                     DetailDivider()
                     DetailRow("到期日期", deposit.endDate)
                     DetailDivider()
-                    DetailRow("到期本息", fmt(deposit.maturityAmount))
+                    DetailRow("到期本息", fmt(deposit.principal + calculateMaturityInterest(deposit.principal, deposit.annualRate, deposit.termDays, deposit.calcMethod)))
                     DetailDivider()
-                    DetailRow("到期利息", fmt(deposit.maturityAmount - deposit.principal))
+                    DetailRow("到期利息", fmt(calculateMaturityInterest(deposit.principal, deposit.annualRate, deposit.termDays, deposit.calcMethod)))
                 }
             }
 
@@ -493,7 +493,7 @@ fun EarlyWithdrawalSheet(
         EarlyWithdrawalResult(0.0, deposit.principal, 0, rate, "日期格式无效，请重新选择")
     }
 
-    val normalMaturityInterest = deposit.maturityAmount - deposit.principal
+    val normalMaturityInterest = calculateMaturityInterest(deposit.principal, deposit.annualRate, deposit.termDays, deposit.calcMethod)
     val lossAmount = normalMaturityInterest - result.interest
 
     Box(

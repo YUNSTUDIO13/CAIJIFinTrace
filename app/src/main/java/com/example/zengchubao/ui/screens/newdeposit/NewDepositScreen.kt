@@ -87,7 +87,7 @@ fun NewDepositScreen(
     }
     val principalVal = principal.toDoubleOrNull() ?: 0.0
     val rateVal = annualRate.toDoubleOrNull() ?: 0.0
-    val estimatedInterest = calculateMaturityInterest(principalVal, rateVal, effectiveTermDays)
+    val estimatedInterest = calculateMaturityInterest(principalVal, rateVal, effectiveTermDays, selectedCalcMethod)
     val estimatedTotal = principalVal + estimatedInterest
 
     Scaffold(

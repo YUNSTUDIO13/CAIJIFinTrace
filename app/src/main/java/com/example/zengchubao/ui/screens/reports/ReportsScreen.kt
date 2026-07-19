@@ -104,7 +104,7 @@ fun ReportsScreen(
     }
     val archivedYield = remember(deposits) {
         deposits.filter { it.status != DepositStatus.HOLDING }
-            .sumOf { it.maturityAmount - it.principal }
+            .sumOf { calculateMaturityInterest(it.principal, it.annualRate, it.termDays, it.calcMethod) }
     }
 
     // 按银行分组

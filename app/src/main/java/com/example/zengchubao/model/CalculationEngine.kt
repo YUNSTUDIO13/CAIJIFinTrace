@@ -6,9 +6,8 @@ import kotlinx.datetime.*
 const val DAYS_PER_MONTH = 30
 const val DAYS_PER_YEAR = 360
 
-/** 根据计息法返回年基准天数：对年对月→365，实际天数→360 */
-fun yearBasis(calcMethod: CalcMethod): Int =
-    if (calcMethod == CalcMethod.ANNUAL_MATCH) 365 else 360
+/** 根据计息法返回年基准天数：对年对月→365，实际天数→365 */
+fun yearBasis(calcMethod: CalcMethod): Int = 365
 
 // ── 获取今天日期字符串 ──
 fun todayString(): String {
@@ -93,17 +92,18 @@ fun calculateActualTermDays(startDate: String, endDate: String, calcMethod: Calc
 /**
  * 到期本息 = 本金 × (1 + 年利率% × 存期天数 ÷ 360)
  */
-fun calculateMaturityAmount(principal: Double, annualRate: Double, termDays: Int): Double {
-    val dailyRate = annualRate / 100.0 / DAYS_PER_YEAR
-    val interest = principal * dailyRate * termDays
+fun calculateMaturityAmount(principal: Double, annualRate: Double, termDays: Int, calcMethod: CalcMethod = CalcMethod.ACTUAL_DAYS): Double {
+    val basis = yearBasis(calcMethod).toDouble()
+    val interest = principal * (annualRate / 100.0) * (termDays.toDouble() / basis)
     return principal + interest
 }
 
 /**
  * 到期利息
  */
-fun calculateMaturityInterest(principal: Double, annualRate: Double, termDays: Int): Double {
-    return principal * (annualRate / 100.0) * (termDays.toDouble() / DAYS_PER_YEAR)
+fun calculateMaturityInterest(principal: Double, annualRate: Double, termDays: Int, calcMethod: CalcMethod = CalcMethod.ACTUAL_DAYS): Double {
+    val basis = yearBasis(calcMethod).toDouble()
+    return principal * (annualRate / 100.0) * (termDays.toDouble() / basis)
 }
 
 // ── 已累计收益计算 ──
@@ -153,8 +153,9 @@ fun calculateEarlyWithdrawalInterest(
         )
     }
 
-    // 利息 = 本金 × 活期利率% × 实际天数 ÷ 360
-    val interest = principal * (demandRate / 100.0) * (actualDays.toDouble() / DAYS_PER_YEAR)
+    // 利息 = 本金 × 活期利率% × 实际天数 ÷ 年基准
+    val basis = yearBasis(CalcMethod.ACTUAL_DAYS).toDouble()
+    val interest = principal * (demandRate / 100.0) * (actualDays.toDouble() / basis)
     val totalAmount = principal + interest
 
     // 判断所在档位
@@ -217,7 +218,7 @@ fun calculateAnnualExpectedYield(deposits: List<Deposit>): Double {
 
 fun calculateTotalMaturityYield(deposits: List<Deposit>): Double {
     return deposits.filter { it.status == DepositStatus.HOLDING }
-        .sumOf { calculateMaturityInterest(it.principal, it.annualRate, it.termDays) }
+        .sumOf { calculateMaturityInterest(it.principal, it.annualRate, it.termDays, it.calcMethod) }
 }
 
 // ── 加权平均年化利率（时间加权） ──
