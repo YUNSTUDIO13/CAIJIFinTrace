@@ -143,6 +143,8 @@ fun DailyBreakdownScreen(
                     holding = holding,
                     today = today,
                     todayDay = if (currentYear == todayYear && currentMonth == todayMonth) todayDay else null,
+                    currentYear = currentYear,
+                    currentMonth = currentMonth,
                     selectedDate = selectedDate,
                     onSelectDate = { date ->
                         selectedDate = date
@@ -181,7 +183,7 @@ fun DailyBreakdownScreen(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     val dateLabel = formatDateLong(selectedDate)
-                    Text("${dateLabel} · 日收益", fontSize = 8.sp, fontWeight = FontWeight.SemiBold,
+                    Text("${dateLabel} · 日收益", fontSize = 11.sp, fontWeight = FontWeight.SemiBold,
                         color = Color(0xFF1E293B))
                 }
             }
@@ -225,6 +227,8 @@ private fun CalendarPager(
     holding: List<Deposit>,
     today: String,
     todayDay: Int?,
+    currentYear: Int,
+    currentMonth: Int,
     selectedDate: String,
     onSelectDate: (String) -> Unit,
     onCurrentMonthChange: (Int, Int) -> Unit,
@@ -236,6 +240,15 @@ private fun CalendarPager(
     val todayYear = today.substring(0, 4).toInt()
     val todayMonth = today.substring(5, 7).toInt()
     val pagerState = rememberPagerState(initialPage = 500) { 1000 }
+
+    // Pager 同步外部年月变化（如选择月份页面跳转）
+    LaunchedEffect(currentYear, currentMonth) {
+        val diff = (currentYear - todayYear) * 12 + (currentMonth - todayMonth)
+        val targetPage = 500 + diff
+        if (pagerState.currentPage != targetPage) {
+            pagerState.scrollToPage(targetPage)
+        }
+    }
 
     LaunchedEffect(pagerState) {
         snapshotFlow { pagerState.settledPage }.collect { page ->
@@ -303,29 +316,25 @@ private fun CalendarCard(
             .border(0.6.dp, Color(0xFFE2E8F0), RoundedCornerShape(20.dp))
             .padding(start = 14.dp, end = 14.dp, top = 14.dp, bottom = 14.dp)
     ) {
-        // 顶部：左右箭头 + 年月标题
+        // 顶部：左右箭头 + 年月标题 + 月合计
         Row(verticalAlignment = Alignment.CenterVertically) {
-            Box(
-                modifier = Modifier
-                    .size(32.dp)
-                    .clip(RoundedCornerShape(16.dp))
-                    .background(Color(0xFF2563EB))
-                    .clickable { onPrevMonth() },
-                contentAlignment = Alignment.Center
+            IconButton(
+                onClick = onPrevMonth,
+                modifier = Modifier.size(32.dp).clip(RoundedCornerShape(16.dp)).background(Color(0xFF2563EB))
             ) {
                 Icon(Icons.Filled.ChevronLeft, "上月", tint = Color.White, modifier = Modifier.size(20.dp))
             }
-            Text("${year}年${month}月", fontSize = 18.sp, fontWeight = FontWeight.Bold,
-                color = Color(0xFF1E293B),
-                modifier = Modifier.weight(1f).clickable { onTapYearMonth() },
-                textAlign = androidx.compose.ui.text.style.TextAlign.Center)
-            Box(
-                modifier = Modifier
-                    .size(32.dp)
-                    .clip(RoundedCornerShape(16.dp))
-                    .background(Color(0xFF2563EB))
-                    .clickable { onNextMonth() },
-                contentAlignment = Alignment.Center
+            Column(modifier = Modifier.weight(1f).clickable { onTapYearMonth() },
+                horizontalAlignment = Alignment.CenterHorizontally) {
+                Text("${year}年${month}月", fontSize = 18.sp, fontWeight = FontWeight.Bold,
+                    color = Color(0xFF1E293B), textAlign = androidx.compose.ui.text.style.TextAlign.Center)
+                Text("月合计 +¥${CN_2.format(monthly.monthTotal)}", fontSize = 10.sp,
+                    color = Color(0xFFDC2626), fontWeight = FontWeight.SemiBold,
+                    textAlign = androidx.compose.ui.text.style.TextAlign.Center)
+            }
+            IconButton(
+                onClick = onNextMonth,
+                modifier = Modifier.size(32.dp).clip(RoundedCornerShape(16.dp)).background(Color(0xFF2563EB))
             ) {
                 Icon(Icons.Filled.ChevronRight, "下月", tint = Color.White, modifier = Modifier.size(20.dp))
             }
@@ -425,11 +434,10 @@ private fun DayCell(
     }
     Box(
         modifier = modifier
-            .height(58.dp)
+            .height(70.dp)
             .padding(2.dp)
             .clip(RoundedCornerShape(8.dp))
             .background(bgColor)
-            // 描边色 = 底色（视觉无边框）
             .border(0.5.dp, bgColor, RoundedCornerShape(8.dp))
             .clickable { onClick() },
         contentAlignment = Alignment.TopCenter
@@ -440,8 +448,8 @@ private fun DayCell(
             Text("$day", fontSize = 12.sp, color = textColor,
                 fontWeight = if (isToday || isSelected) FontWeight.Bold else FontWeight.Medium)
             if (isCurrentMonth && (hasIncome || isSelected)) {
-                Spacer(Modifier.height(1.dp))
-                Text(if (hasIncome) "+${CN_2.format(income)}" else "+0", fontSize = 7.sp,
+                Spacer(Modifier.height(2.dp))
+                Text(if (hasIncome) "+${CN_2.format(income)}" else "+0", fontSize = 8.sp,
                     color = incomeColor,
                     fontWeight = FontWeight.SemiBold, maxLines = 1)
             }
@@ -465,12 +473,11 @@ private fun DailyIncomeCard(
         elevation = CardDefaults.cardElevation(defaultElevation = 0.5.dp)
     ) {
         Column(Modifier.fillMaxWidth().padding(start = 12.dp, end = 12.dp, top = 10.dp, bottom = 10.dp)) {
-            // L1: 产品名 (左) | 收益金额 (右)
+            // L1: 产品名 (左，weight 1 填充) | 收益金额 (右，自然宽)
             Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                 Text(deposit.productName, fontSize = 13.sp, fontWeight = FontWeight.SemiBold,
                     color = Color(0xFF1E293B), maxLines = 1, overflow = TextOverflow.Ellipsis,
-                    modifier = Modifier.weight(1f, fill = false))
-                Spacer(Modifier.weight(1f))
+                    modifier = Modifier.weight(1f))
                 Text("+¥${CN_2.format(income)}", fontSize = 14.sp, fontWeight = FontWeight.Bold,
                     color = Color(0xFFDC2626))
             }

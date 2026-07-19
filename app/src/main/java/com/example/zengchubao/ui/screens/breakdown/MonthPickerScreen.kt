@@ -76,7 +76,7 @@ fun MonthPickerScreen(
 @Composable
 private fun YearHeader(year: Int, isCurrent: Boolean, modifier: Modifier = Modifier) {
     Text("$year",
-        fontSize = 8.sp, fontWeight = FontWeight.Bold,
+        fontSize = 11.sp, fontWeight = FontWeight.Bold,
         color = Color(0xFF2563EB),
         modifier = modifier
             .let { if (isCurrent) it.background(Color(0xFFEFF6FF), RoundedCornerShape(8.dp))
@@ -101,7 +101,7 @@ private fun MonthRow(
             .background(Color.White)
             .border(0.5.dp, Color(0xFFE2E8F0), RoundedCornerShape(14.dp))
             .clickable { onClick() }
-            .padding(start = 14.dp, end = 14.dp, top = 12.dp, bottom = 10.dp)
+            .padding(start = 14.dp, end = 14.dp, top = 10.dp, bottom = 10.dp)
     ) {
         // 第一行：X月（左） + 月份收益值（右）
         Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
@@ -115,10 +115,10 @@ private fun MonthRow(
             }
             Spacer(Modifier.weight(1f))
             Text("+¥${CN_2.format(monthly.monthTotal)}",
-                fontSize = 8.sp, color = Color(0xFFDC2626), fontWeight = FontWeight.SemiBold)
+                fontSize = 11.sp, color = Color(0xFFDC2626), fontWeight = FontWeight.SemiBold)
         }
-        // 第二行：热力图（方块）+ 年份（蓝色，8sp）
-        Row(modifier = Modifier.fillMaxWidth().padding(top = 8.dp), verticalAlignment = Alignment.CenterVertically) {
+        // 第二行：热力图（方块）+ 年份（蓝色，11sp）
+        Row(modifier = Modifier.fillMaxWidth().padding(top = 2.dp), verticalAlignment = Alignment.CenterVertically) {
             Row(horizontalArrangement = Arrangement.spacedBy(2.dp), modifier = Modifier.weight(1f)) {
                 for (d in 1..daysInM) {
                     val date = "%04d-%02d-%02d".format(year, month, d)
@@ -130,7 +130,7 @@ private fun MonthRow(
                 }
             }
             Spacer(Modifier.width(8.dp))
-            Text("$year", fontSize = 8.sp, fontWeight = FontWeight.SemiBold, color = Color(0xFF2563EB))
+            Text("$year", fontSize = 11.sp, fontWeight = FontWeight.SemiBold, color = Color(0xFF2563EB))
         }
     }
 }
