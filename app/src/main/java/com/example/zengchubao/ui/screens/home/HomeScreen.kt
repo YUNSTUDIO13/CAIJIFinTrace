@@ -355,7 +355,7 @@ fun RefDepositCard(deposit: Deposit, onClick: () -> Unit, modifier: Modifier = M
                     }
                 }
                 Spacer(Modifier.width(8.dp))
-                Text("¥${CN_INT.format(deposit.principal)}", fontSize = 15.sp, fontWeight = FontWeight.Bold,
+                Text("¥${CN_INT.format(deposit.principal)}", fontSize = 13.sp, fontWeight = FontWeight.Bold,
                     color = Color(0xFF1E293B))
             }
 
