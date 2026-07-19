@@ -339,11 +339,10 @@ fun RefDepositCard(deposit: Deposit, onClick: () -> Unit, modifier: Modifier = M
         Column(Modifier.fillMaxWidth().padding(start = 14.dp, end = 14.dp, top = 10.dp, bottom = 10.dp),
             verticalArrangement = Arrangement.spacedBy(1.dp)) {
 
-            // ══ L1: 产品名（左） | ¥本金（右） ══
+            // ══ L1: 产品名（左） | +¥利息 · ¥本金（右，底部基线对齐） ══
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
+                verticalAlignment = Alignment.Bottom
             ) {
                 Row(verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(5.dp)) {
@@ -354,16 +353,19 @@ fun RefDepositCard(deposit: Deposit, onClick: () -> Unit, modifier: Modifier = M
                         MiniBadge("即将到期", bg = Color(0xFFFEF3C7), fg = Color(0xFFD97706))
                     }
                 }
-                Spacer(Modifier.width(8.dp))
+                Spacer(Modifier.weight(1f))
+                Text("+¥${CN_INT.format(interestAmount)}", fontSize = 8.sp, fontWeight = FontWeight.Bold,
+                    color = Color(0xFFDC2626))
+                Spacer(Modifier.width(6.dp))
                 Text("¥${CN_INT.format(deposit.principal)}", fontSize = 13.sp, fontWeight = FontWeight.Bold,
                     color = Color(0xFF1E293B))
             }
 
-            // ══ L2: 银行 · 利率（左） | 利息 · 倒计时（右） ══
+            // ══ L2: 银行 · 利率（左） | 倒计时（右） ══
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.Bottom
+                verticalAlignment = Alignment.CenterVertically
             ) {
                 Row(verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(3.dp)) {
@@ -371,17 +373,12 @@ fun RefDepositCard(deposit: Deposit, onClick: () -> Unit, modifier: Modifier = M
                     Text("·", fontSize = 10.sp, color = Color(0xFF94A3B8))
                     Text("${"%.2f".format(deposit.annualRate)}%", fontSize = 10.sp, color = Color(0xFF64748B))
                 }
-                Row(verticalAlignment = Alignment.Bottom,
-                    horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                    Text("+¥${CN_INT.format(interestAmount)}", fontSize = 8.sp, fontWeight = FontWeight.Bold,
-                        color = Color(0xFFDC2626))
-                    val countdownText = when {
-                        isExpired -> "已过期${-remainingDays}天"
-                        remainingDays == 0 -> "今日到期"
-                        else -> "${remainingDays}天后到期"
-                    }
-                    Text(countdownText, fontSize = 10.sp, color = dateColor)
+                val countdownText = when {
+                    isExpired -> "已过期${-remainingDays}天"
+                    remainingDays == 0 -> "今日到期"
+                    else -> "${remainingDays}天后到期"
                 }
+                Text(countdownText, fontSize = 10.sp, color = dateColor)
             }
         }
     }
