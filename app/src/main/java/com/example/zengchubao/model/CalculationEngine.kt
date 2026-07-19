@@ -203,7 +203,7 @@ fun calculateAnnualExpectedYield(deposits: List<Deposit>): Double {
     val today = todayString()
     val yearStart = "${today.take(4)}-01-01"
     val yearEnd = "${today.take(4)}-12-31"
-    return deposits.filter { it.status == DepositStatus.HOLDING }
+    return deposits
         .sumOf { dep ->
             val start = if (dep.startDate > yearStart) addDays(dep.startDate, 1) else yearStart
             val end = if (dep.endDate < yearEnd) dep.endDate else yearEnd

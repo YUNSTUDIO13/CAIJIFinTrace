@@ -87,7 +87,7 @@ fun ReportsScreen(
     val assetBalance = remember(holding) { calculateAssetBalance(holding) }
     val totalYield = remember(holding) { calculateTotalMaturityYield(holding) }
     val totalDeposited = remember(holding) { holding.sumOf { it.principal } }
-    val annualExpected = remember(holding) { calculateAnnualExpectedYield(holding) }
+    val annualExpected = remember(deposits) { calculateAnnualExpectedYield(deposits) }
     val weightedRate = remember(holding) { calculateWeightedRate(holding) }
     val dailyRate = remember(holding) {
         val today = todayString()
