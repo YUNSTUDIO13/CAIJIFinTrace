@@ -56,6 +56,8 @@ fun HomeScreen(
     onAccumulatedDetail: () -> Unit = {},
     onAnnualDetail: () -> Unit = {},
     onDailyDetail: () -> Unit = {},
+    fireGoal: Double = 0.0,
+    onSaveFireGoal: (Double) -> Unit = {},
     onRefresh: () -> Unit
 ) {
     val holdingDeposits = remember(deposits) {
@@ -148,6 +150,17 @@ fun HomeScreen(
             }
 
             item { Spacer(Modifier.height(10.dp)) }
+
+            // ── FIRE 目标卡片 ──
+            item {
+                FireSection(
+                    fireGoal = fireGoal,
+                    fireCurrent = assetBalance,
+                    onSaveGoal = onSaveFireGoal
+                )
+            }
+
+            item { Spacer(Modifier.height(12.dp)) }
 
             // ── 我的存单 标题 ──
             item {

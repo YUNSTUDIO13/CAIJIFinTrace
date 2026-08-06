@@ -191,6 +191,12 @@ fun ZengChuBaoApp() {
                                     onAccumulatedDetail = { currentScreen = Screen.EarningsBreakdown("accumulated") },
                                     onAnnualDetail = { currentScreen = Screen.EarningsBreakdown("annual") },
                                     onDailyDetail = { currentScreen = Screen.EarningsBreakdown("daily") },
+                                    fireGoal = settings.fireGoal,
+                                    onSaveFireGoal = { goal ->
+                                        val next = settings.copy(fireGoal = goal)
+                                        settings = next
+                                        scope.launch { withContext(Dispatchers.IO) { storage.saveSettings(next) } }
+                                    },
                                     onRefresh = { scope.launch { refreshData() } }
                                 )
                                 AppTab.REPORTS -> ReportsScreen(

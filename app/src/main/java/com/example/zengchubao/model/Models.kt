@@ -172,7 +172,9 @@ data class AppSettings(
     val showNetWorthTrend: Boolean = true,
     val showAssetCategoryDetail: Boolean = true,
     // 报表顺序与可见性（v2.0）
-    val reportItems: List<ReportItemSetting> = DEFAULT_REPORT_ITEMS
+    val reportItems: List<ReportItemSetting> = DEFAULT_REPORT_ITEMS,
+    // FIRE 目标金额（0 = 未设定）
+    val fireGoal: Double = 0.0
 ) {
     /**
      * 兼容旧版本备份：
