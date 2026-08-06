@@ -244,9 +244,9 @@ private fun buildWavePath(w: Float, h: Float, shift: Float, period: Float, baseY
 private fun FireCardConfigured(target: Double, current: Double, onEdit: () -> Unit) {
     val pct = if (target > 0) (current / target) * 100.0 else 0.0
     FireCardShell {
-        Column(Modifier.padding(start = 16.dp, end = 16.dp, top = 11.dp, bottom = 13.dp)) {
+        Column(Modifier.padding(start = 16.dp, end = 16.dp, top = 10.dp, bottom = 10.dp)) {
             Row(
-                Modifier.fillMaxWidth().padding(bottom = 9.dp),
+                Modifier.fillMaxWidth().padding(bottom = 8.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 // 左：🔥 FIRE目标 | 目标 ¥x（weight 限定，右组保底）
@@ -266,10 +266,11 @@ private fun FireCardConfigured(target: Double, current: Double, onEdit: () -> Un
                         overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis)
                 }
                 Spacer(Modifier.width(8.dp))
-                // 右：¥current pct% ✏️
-                Row(verticalAlignment = Alignment.CenterVertically) {
+                // 右：¥current pct% ✏️（¥current 与 pct% 底部基线对齐；铅笔与 pct% 中线对齐）
+                Row(verticalAlignment = Alignment.Bottom) {
                     Text("¥${CN_LOCALE.format(current)}", fontSize = 7.sp,
-                        color = Color.White.copy(alpha = 0.35f), maxLines = 1)
+                        color = Color.White.copy(alpha = 0.35f), maxLines = 1,
+                        modifier = Modifier.padding(bottom = 1.dp))
                     Spacer(Modifier.width(4.dp))
                     Text(
                         "${"%.1f".format(pct)}%",
@@ -282,13 +283,15 @@ private fun FireCardConfigured(target: Double, current: Double, onEdit: () -> Un
                         )
                     )
                     Spacer(Modifier.width(4.dp))
-                    // 半透明小铅笔按钮
+                    // 半透明小铅笔按钮：与 pct% 同高容器内居中，顶部不高于 pct%
                     Box(
                         Modifier
+                            .height(12.sp.value.dp)
                             .clip(RoundedCornerShape(999.dp))
                             .background(Color.White.copy(alpha = 0.08f))
                             .clickable { onEdit() }
-                            .padding(horizontal = 5.dp, vertical = 2.dp)
+                            .padding(horizontal = 5.dp),
+                        contentAlignment = Alignment.Center
                     ) {
                         Text("✏️", fontSize = 7.sp, lineHeight = 7.sp)
                     }
