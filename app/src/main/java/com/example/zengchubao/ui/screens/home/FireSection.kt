@@ -43,7 +43,7 @@ private fun FireCardShell(modifier: Modifier = Modifier, content: @Composable Bo
     Box(
         modifier = modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(16.dp))
+            .clip(RoundedCornerShape(28.dp))
             .background(
                 Brush.linearGradient(
                     colors = listOf(Color(0xFF0D0D0F), Color(0xFF111218), Color(0xFF0F1014)),
@@ -146,9 +146,14 @@ private fun FireProgressBar(pct: Float) {
                     )
                 )
         )
-        // ── 波浪（两层，仅画在填充范围内） ──
+        // ── 波浪（两层，仅画在填充范围内，clip 圆角防尾部越过锤子） ──
         if (clamped > 0f) {
-            Canvas(Modifier.fillMaxHeight().fillMaxWidth(clamped / 100f)) {
+            Canvas(
+                Modifier
+                    .fillMaxHeight()
+                    .fillMaxWidth(clamped / 100f)
+                    .clip(RoundedCornerShape(11.dp))
+            ) {
                 val w = size.width
                 val h = size.height
                 val period = w * 0.9f // 单个波周期
@@ -249,26 +254,26 @@ private fun FireCardConfigured(target: Double, current: Double, onEdit: () -> Un
                     Modifier.weight(1f),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Text("🔥 FIRE目标", fontSize = 12.sp, fontWeight = FontWeight.W500,
+                    Text("🔥 FIRE目标", fontSize = 8.sp, fontWeight = FontWeight.W500,
                         color = Color.White.copy(alpha = 0.45f), letterSpacing = 0.3.sp, maxLines = 1)
                     Spacer(Modifier.width(8.dp))
-                    Box(Modifier.width(1.dp).height(12.dp).background(Color.White.copy(alpha = 0.12f)))
+                    Box(Modifier.width(1.dp).height(10.dp).background(Color.White.copy(alpha = 0.12f)))
                     Spacer(Modifier.width(8.dp))
-                    Text("目标", fontSize = 12.sp, color = Color.White.copy(alpha = 0.35f), maxLines = 1)
+                    Text("目标", fontSize = 8.sp, color = Color.White.copy(alpha = 0.35f), maxLines = 1)
                     Spacer(Modifier.width(4.dp))
-                    Text("¥${CN_LOCALE.format(target)}", fontSize = 14.sp, fontWeight = FontWeight.Bold,
+                    Text("¥${CN_LOCALE.format(target)}", fontSize = 10.sp, fontWeight = FontWeight.Bold,
                         color = Color.White.copy(alpha = 0.75f), maxLines = 1,
                         overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis)
                 }
                 Spacer(Modifier.width(8.dp))
                 // 右：¥current pct% ✏️
-                Row(verticalAlignment = Alignment.Bottom) {
-                    Text("¥${CN_LOCALE.format(current)}", fontSize = 10.sp,
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text("¥${CN_LOCALE.format(current)}", fontSize = 7.sp,
                         color = Color.White.copy(alpha = 0.35f), maxLines = 1)
-                    Spacer(Modifier.width(5.dp))
+                    Spacer(Modifier.width(4.dp))
                     Text(
                         "${"%.1f".format(pct)}%",
-                        fontSize = 18.sp, fontWeight = FontWeight.ExtraBold, lineHeight = 18.sp,
+                        fontSize = 12.sp, fontWeight = FontWeight.ExtraBold, lineHeight = 12.sp,
                         maxLines = 1, softWrap = false,
                         style = TextStyle(
                             brush = Brush.linearGradient(
@@ -276,14 +281,17 @@ private fun FireCardConfigured(target: Double, current: Double, onEdit: () -> Un
                             )
                         )
                     )
-                    Text("✏️", fontSize = 13.sp,
-                        modifier = Modifier
-                            .padding(start = 4.dp)
-                            .clickable(
-                                interactionSource = remember { androidx.compose.foundation.interaction.MutableInteractionSource() },
-                                indication = null
-                            ) { onEdit() }
-                    )
+                    Spacer(Modifier.width(4.dp))
+                    // 半透明小铅笔按钮
+                    Box(
+                        Modifier
+                            .clip(RoundedCornerShape(999.dp))
+                            .background(Color.White.copy(alpha = 0.08f))
+                            .clickable { onEdit() }
+                            .padding(horizontal = 5.dp, vertical = 2.dp)
+                    ) {
+                        Text("✏️", fontSize = 7.sp, lineHeight = 7.sp)
+                    }
                 }
             }
             FireProgressBar(min(pct, 100.0).toFloat())
@@ -401,7 +409,9 @@ private fun FireInputSheet(
                             listOf(Color(0xFF14151A), Color(0xFF0F1014))
                         )
                     )
-                    .padding(bottom = 40.dp)
+                    .padding(bottom = 20.dp)
+                    .navigationBarsPadding()
+                    .imePadding()
             ) {
                 // 拖拽把手
                 Box(Modifier.fillMaxWidth().padding(top = 12.dp, bottom = 4.dp), contentAlignment = Alignment.Center) {
@@ -417,7 +427,7 @@ private fun FireInputSheet(
                 Box(
                     Modifier
                         .fillMaxWidth()
-                        .padding(bottom = 20.dp)
+                        .padding(bottom = 14.dp)
                         .height(1.dp)
                         .background(
                             Brush.horizontalGradient(
@@ -431,14 +441,14 @@ private fun FireInputSheet(
                 Column(Modifier.padding(horizontal = 22.dp)) {
                     Text("🔥 设定 FIRE 目标金额", fontSize = 13.sp,
                         color = Color.White.copy(alpha = 0.4f), maxLines = 1,
-                        modifier = Modifier.padding(bottom = 18.dp))
+                        modifier = Modifier.padding(bottom = 12.dp))
 
                     // 大字实时金额
                     Row(
                         Modifier
                             .fillMaxWidth()
-                            .heightIn(min = 52.dp)
-                            .padding(bottom = 6.dp),
+                            .heightIn(min = 44.dp)
+                            .padding(bottom = 4.dp),
                         verticalAlignment = Alignment.Bottom
                     ) {
                         Text("¥", fontSize = 28.sp, fontWeight = FontWeight.Light,
@@ -463,7 +473,7 @@ private fun FireInputSheet(
                         onValueChange = { v -> if (v.all { it.isDigit() }) raw = v },
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(bottom = 22.dp)
+                            .padding(bottom = 16.dp)
                             .onFocusChanged { focused = it.isFocused }
                             .drawBehind {
                                 drawLine(
@@ -495,8 +505,8 @@ private fun FireInputSheet(
                     Row(
                         Modifier
                             .fillMaxWidth()
-                            .padding(bottom = 26.dp),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            .padding(bottom = 18.dp),
+                        horizontalArrangement = Arrangement.spacedBy(6.dp)
                     ) {
                         shortcuts.forEach { v ->
                             val selected = numeric == v
@@ -514,12 +524,12 @@ private fun FireInputSheet(
                                         RoundedCornerShape(20.dp)
                                     )
                                     .clickable { raw = v.toLong().toString() }
-                                    .padding(horizontal = 13.dp, vertical = 5.dp)
+                                    .padding(horizontal = 9.dp, vertical = 3.dp)
                             ) {
                                 Text(
                                     if (v >= 1000000) "${(v / 10000).toLong()}百万"
                                     else "${(v / 10000).toLong()}万",
-                                    fontSize = 12.sp, fontWeight = FontWeight.SemiBold,
+                                    fontSize = 10.sp, fontWeight = FontWeight.SemiBold,
                                     maxLines = 1, softWrap = false,
                                     color = if (selected) FireAmber else Color.White.copy(alpha = 0.4f)
                                 )
