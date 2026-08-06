@@ -18,6 +18,7 @@ import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.graphics.*
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.text.PlatformTextStyle
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
@@ -245,36 +246,42 @@ private fun FireCardConfigured(target: Double, current: Double, onEdit: () -> Un
         Column(Modifier.padding(start = 16.dp, end = 16.dp, top = 10.dp, bottom = 10.dp)) {
             Row(
                 Modifier.fillMaxWidth().padding(bottom = 8.dp),
-                verticalAlignment = Alignment.Bottom
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                // 左：🔥 FIRE目标 | ¥x（与右侧同基线）
+                // 左：🔥 FIRE目标 | ¥x（去字体padding，与右组视觉同中线）
                 Row(
                     Modifier.weight(1f),
-                    verticalAlignment = Alignment.Bottom
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
                     Text("🔥 FIRE目标", fontSize = 8.sp, fontWeight = FontWeight.W500,
-                        color = Color.White.copy(alpha = 0.45f), letterSpacing = 0.3.sp, maxLines = 1)
+                        color = Color.White.copy(alpha = 0.45f), letterSpacing = 0.3.sp, maxLines = 1,
+                        style = TextStyle(platformStyle = PlatformTextStyle(includeFontPadding = false)))
                     Spacer(Modifier.width(8.dp))
-                    Text("｜", fontSize = 8.sp, color = Color.White.copy(alpha = 0.12f))
+                    Text("｜", fontSize = 8.sp, color = Color.White.copy(alpha = 0.12f),
+                        style = TextStyle(platformStyle = PlatformTextStyle(includeFontPadding = false)))
                     Spacer(Modifier.width(8.dp))
                     Text("¥${CN_LOCALE.format(target)}", fontSize = 10.sp, fontWeight = FontWeight.Bold,
                         color = Color.White.copy(alpha = 0.75f), maxLines = 1, softWrap = false,
-                        overflow = androidx.compose.ui.text.style.TextOverflow.Clip)
+                        overflow = androidx.compose.ui.text.style.TextOverflow.Clip,
+                        style = TextStyle(platformStyle = PlatformTextStyle(includeFontPadding = false)))
                 }
                 Spacer(Modifier.width(8.dp))
-                // 右：¥current pct% ✏️（同一底部基线；铅笔与 pct% 中线对齐）
+                // 右：¥current pct% ✏️（¥current 与 pct% 基线对齐；铅笔与 pct% 中线对齐）
                 Text("¥${CN_LOCALE.format(current)}", fontSize = 7.sp,
                     color = Color.White.copy(alpha = 0.35f), maxLines = 1,
-                    modifier = Modifier.padding(bottom = 1.dp))
+                    modifier = Modifier.alignByBaseline(),
+                    style = TextStyle(platformStyle = PlatformTextStyle(includeFontPadding = false)))
                 Spacer(Modifier.width(4.dp))
                 Text(
                     "${"%.1f".format(pct)}%",
                     fontSize = 12.sp, fontWeight = FontWeight.ExtraBold, lineHeight = 12.sp,
                     maxLines = 1, softWrap = false,
+                    modifier = Modifier.alignByBaseline(),
                     style = TextStyle(
                         brush = Brush.linearGradient(
                             listOf(FireAmber, FireDeepOrange)
-                        )
+                        ),
+                        platformStyle = PlatformTextStyle(includeFontPadding = false)
                     )
                 )
                 Spacer(Modifier.width(4.dp))
