@@ -244,38 +244,47 @@ private fun FireCardConfigured(target: Double, current: Double, onEdit: () -> Un
                 Modifier.fillMaxWidth().padding(bottom = 9.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                // 左：🔥 FIRE目标 | 目标 ¥x
-                Text("🔥 FIRE目标", fontSize = 12.sp, fontWeight = FontWeight.W500,
-                    color = Color.White.copy(alpha = 0.45f), letterSpacing = 0.3.sp)
-                Spacer(Modifier.width(10.dp))
-                Box(Modifier.width(1.dp).height(12.dp).background(Color.White.copy(alpha = 0.12f)))
-                Spacer(Modifier.width(10.dp))
-                Text("目标", fontSize = 12.sp, color = Color.White.copy(alpha = 0.35f))
-                Spacer(Modifier.width(6.dp))
-                Text("¥${CN_LOCALE.format(target)}", fontSize = 14.sp, fontWeight = FontWeight.Bold,
-                    color = Color.White.copy(alpha = 0.75f))
-                Spacer(Modifier.weight(1f))
+                // 左：🔥 FIRE目标 | 目标 ¥x（weight 限定，右组保底）
+                Row(
+                    Modifier.weight(1f),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text("🔥 FIRE目标", fontSize = 12.sp, fontWeight = FontWeight.W500,
+                        color = Color.White.copy(alpha = 0.45f), letterSpacing = 0.3.sp, maxLines = 1)
+                    Spacer(Modifier.width(8.dp))
+                    Box(Modifier.width(1.dp).height(12.dp).background(Color.White.copy(alpha = 0.12f)))
+                    Spacer(Modifier.width(8.dp))
+                    Text("目标", fontSize = 12.sp, color = Color.White.copy(alpha = 0.35f), maxLines = 1)
+                    Spacer(Modifier.width(4.dp))
+                    Text("¥${CN_LOCALE.format(target)}", fontSize = 14.sp, fontWeight = FontWeight.Bold,
+                        color = Color.White.copy(alpha = 0.75f), maxLines = 1,
+                        overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis)
+                }
+                Spacer(Modifier.width(8.dp))
                 // 右：¥current pct% ✏️
-                Text("¥${CN_LOCALE.format(current)}", fontSize = 10.sp,
-                    color = Color.White.copy(alpha = 0.35f))
-                Spacer(Modifier.width(5.dp))
-                Text(
-                    "${"%.1f".format(pct)}%",
-                    fontSize = 18.sp, fontWeight = FontWeight.ExtraBold, lineHeight = 18.sp,
-                    style = TextStyle(
-                        brush = Brush.linearGradient(
-                            listOf(FireAmber, FireDeepOrange)
+                Row(verticalAlignment = Alignment.Bottom) {
+                    Text("¥${CN_LOCALE.format(current)}", fontSize = 10.sp,
+                        color = Color.White.copy(alpha = 0.35f), maxLines = 1)
+                    Spacer(Modifier.width(5.dp))
+                    Text(
+                        "${"%.1f".format(pct)}%",
+                        fontSize = 18.sp, fontWeight = FontWeight.ExtraBold, lineHeight = 18.sp,
+                        maxLines = 1, softWrap = false,
+                        style = TextStyle(
+                            brush = Brush.linearGradient(
+                                listOf(FireAmber, FireDeepOrange)
+                            )
                         )
                     )
-                )
-                Text("✏️", fontSize = 13.sp,
-                    modifier = Modifier
-                        .padding(start = 4.dp)
-                        .clickable(
-                            interactionSource = remember { androidx.compose.foundation.interaction.MutableInteractionSource() },
-                            indication = null
-                        ) { onEdit() }
-                )
+                    Text("✏️", fontSize = 13.sp,
+                        modifier = Modifier
+                            .padding(start = 4.dp)
+                            .clickable(
+                                interactionSource = remember { androidx.compose.foundation.interaction.MutableInteractionSource() },
+                                indication = null
+                            ) { onEdit() }
+                    )
+                }
             }
             FireProgressBar(min(pct, 100.0).toFloat())
         }
@@ -302,10 +311,11 @@ private fun FireCardEmpty(onSetup: () -> Unit) {
                 Text("开始追踪你的 FIRE 之路", fontSize = 11.sp, color = Color.White.copy(alpha = 0.25f))
             }
             Spacer(Modifier.width(12.dp))
-            // 中：虚线占位轨道
+            // 中：虚线占位轨道（最小宽度保底，防挤压消失）
             Box(
                 Modifier
                     .weight(1f)
+                    .widthIn(min = 56.dp)
                     .height(22.dp)
                     .dashedBorderFix(),
                 contentAlignment = Alignment.Center
@@ -419,13 +429,9 @@ private fun FireInputSheet(
                         )
                 )
                 Column(Modifier.padding(horizontal = 22.dp)) {
-                    Row(verticalAlignment = Alignment.CenterVertically,
-                        modifier = Modifier.padding(bottom = 18.dp)) {
-                        Text("🔥", fontSize = 13.sp)
-                        Spacer(Modifier.width(6.dp))
-                        Text("设定 FIRE 目标金额", fontSize = 13.sp,
-                            color = Color.White.copy(alpha = 0.4f))
-                    }
+                    Text("🔥 设定 FIRE 目标金额", fontSize = 13.sp,
+                        color = Color.White.copy(alpha = 0.4f), maxLines = 1,
+                        modifier = Modifier.padding(bottom = 18.dp))
 
                     // 大字实时金额
                     Row(
@@ -444,6 +450,7 @@ private fun FireInputSheet(
                             text = numeric?.let { CN_LOCALE.format(it) } ?: "0",
                             fontSize = 40.sp, fontWeight = FontWeight.ExtraBold,
                             lineHeight = 40.sp, letterSpacing = (-1).sp,
+                            maxLines = 1, softWrap = false,
                             style = if (raw.isNotEmpty()) TextStyle(
                                 brush = Brush.linearGradient(listOf(FireAmber, FireDeepOrange))
                             ) else TextStyle(color = Color.White.copy(alpha = 0.15f))
@@ -513,6 +520,7 @@ private fun FireInputSheet(
                                     if (v >= 1000000) "${(v / 10000).toLong()}百万"
                                     else "${(v / 10000).toLong()}万",
                                     fontSize = 12.sp, fontWeight = FontWeight.SemiBold,
+                                    maxLines = 1, softWrap = false,
                                     color = if (selected) FireAmber else Color.White.copy(alpha = 0.4f)
                                 )
                             }
