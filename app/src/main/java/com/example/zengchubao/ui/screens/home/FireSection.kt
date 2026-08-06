@@ -243,7 +243,7 @@ private fun buildWavePath(w: Float, h: Float, shift: Float, period: Float, baseY
 private fun FireCardConfigured(target: Double, current: Double, onEdit: () -> Unit) {
     val pct = if (target > 0) (current / target) * 100.0 else 0.0
     FireCardShell {
-        Column(Modifier.padding(start = 16.dp, end = 16.dp, top = 10.dp, bottom = 10.dp)) {
+        Column(Modifier.padding(10.dp)) {
             Row(
                 Modifier.fillMaxWidth().padding(bottom = 8.dp),
                 verticalAlignment = Alignment.CenterVertically
