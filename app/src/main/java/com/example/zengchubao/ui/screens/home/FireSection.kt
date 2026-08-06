@@ -23,8 +23,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.compose.ui.window.Dialog
-import androidx.compose.ui.window.DialogProperties
 import java.text.NumberFormat
 import java.util.Locale
 import kotlin.math.min
@@ -247,52 +245,50 @@ private fun FireCardConfigured(target: Double, current: Double, onEdit: () -> Un
         Column(Modifier.padding(start = 16.dp, end = 16.dp, top = 10.dp, bottom = 10.dp)) {
             Row(
                 Modifier.fillMaxWidth().padding(bottom = 8.dp),
-                verticalAlignment = Alignment.CenterVertically
+                verticalAlignment = Alignment.Bottom
             ) {
-                // 左：🔥 FIRE目标 | 目标 ¥x（weight 限定，右组保底）
+                // 左：🔥 FIRE目标 | ¥x（与右侧同基线）
                 Row(
                     Modifier.weight(1f),
-                    verticalAlignment = Alignment.CenterVertically
+                    verticalAlignment = Alignment.Bottom
                 ) {
                     Text("🔥 FIRE目标", fontSize = 8.sp, fontWeight = FontWeight.W500,
                         color = Color.White.copy(alpha = 0.45f), letterSpacing = 0.3.sp, maxLines = 1)
                     Spacer(Modifier.width(8.dp))
-                    Box(Modifier.width(1.dp).height(10.dp).background(Color.White.copy(alpha = 0.12f)))
+                    Text("｜", fontSize = 8.sp, color = Color.White.copy(alpha = 0.12f))
                     Spacer(Modifier.width(8.dp))
                     Text("¥${CN_LOCALE.format(target)}", fontSize = 10.sp, fontWeight = FontWeight.Bold,
                         color = Color.White.copy(alpha = 0.75f), maxLines = 1, softWrap = false,
                         overflow = androidx.compose.ui.text.style.TextOverflow.Clip)
                 }
                 Spacer(Modifier.width(8.dp))
-                // 右：¥current pct% ✏️（¥current 与 pct% 底部基线对齐；铅笔与 pct% 中线对齐）
-                Row(verticalAlignment = Alignment.Bottom) {
-                    Text("¥${CN_LOCALE.format(current)}", fontSize = 7.sp,
-                        color = Color.White.copy(alpha = 0.35f), maxLines = 1,
-                        modifier = Modifier.padding(bottom = 1.dp))
-                    Spacer(Modifier.width(4.dp))
-                    Text(
-                        "${"%.1f".format(pct)}%",
-                        fontSize = 12.sp, fontWeight = FontWeight.ExtraBold, lineHeight = 12.sp,
-                        maxLines = 1, softWrap = false,
-                        style = TextStyle(
-                            brush = Brush.linearGradient(
-                                listOf(FireAmber, FireDeepOrange)
-                            )
+                // 右：¥current pct% ✏️（同一底部基线；铅笔与 pct% 中线对齐）
+                Text("¥${CN_LOCALE.format(current)}", fontSize = 7.sp,
+                    color = Color.White.copy(alpha = 0.35f), maxLines = 1,
+                    modifier = Modifier.padding(bottom = 1.dp))
+                Spacer(Modifier.width(4.dp))
+                Text(
+                    "${"%.1f".format(pct)}%",
+                    fontSize = 12.sp, fontWeight = FontWeight.ExtraBold, lineHeight = 12.sp,
+                    maxLines = 1, softWrap = false,
+                    style = TextStyle(
+                        brush = Brush.linearGradient(
+                            listOf(FireAmber, FireDeepOrange)
                         )
                     )
-                    Spacer(Modifier.width(4.dp))
-                    // 半透明小铅笔按钮：与 pct% 同高容器内居中，顶部不高于 pct%
-                    Box(
-                        Modifier
-                            .height(12.sp.value.dp)
-                            .clip(RoundedCornerShape(999.dp))
-                            .background(Color.White.copy(alpha = 0.08f))
-                            .clickable { onEdit() }
-                            .padding(horizontal = 5.dp),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Text("✏️", fontSize = 7.sp, lineHeight = 7.sp)
-                    }
+                )
+                Spacer(Modifier.width(4.dp))
+                // 半透明小铅笔：与 pct% 同高容器内居中
+                Box(
+                    Modifier
+                        .height(12.dp)
+                        .clip(RoundedCornerShape(999.dp))
+                        .background(Color.White.copy(alpha = 0.08f))
+                        .clickable { onEdit() }
+                        .padding(horizontal = 5.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text("✏️", fontSize = 7.sp, lineHeight = 7.sp)
                 }
             }
             FireProgressBar(min(pct, 100.0).toFloat())
@@ -369,6 +365,7 @@ private fun Modifier.dashedBorderFix(): Modifier = this.then(
 )
 
 // ─── 输入 Sheet ──────────────────────────────────────────────────────────────
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun FireInputSheet(
     initial: Double?,
@@ -384,39 +381,24 @@ private fun FireInputSheet(
 
     val shortcuts = listOf(500000.0, 1000000.0, 2000000.0, 5000000.0)
 
-    Dialog(
+    ModalBottomSheet(
         onDismissRequest = onCancel,
-        properties = DialogProperties(
-            usePlatformDefaultWidth = false,
-            decorFitsSystemWindows = false
-        )
+        sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
+        containerColor = Color.Transparent,
+        scrimColor = Color.Black.copy(alpha = 0.55f),
+        dragHandle = null,
+        shape = RoundedCornerShape(topStart = 22.dp, topEnd = 22.dp)
     ) {
-        Box(Modifier.fillMaxSize()) {
-            // 毛玻璃遮罩
-            Box(
-                Modifier
-                    .fillMaxSize()
-                    .background(Color.Black.copy(alpha = 0.55f))
-                    .clickable(
-                        interactionSource = remember { androidx.compose.foundation.interaction.MutableInteractionSource() },
-                        indication = null
-                    ) { onCancel() }
-            )
-            // 底部 Sheet
-            Column(
-                Modifier
-                    .align(Alignment.BottomCenter)
-                    .fillMaxWidth()
-                    .clip(RoundedCornerShape(topStart = 22.dp, topEnd = 22.dp))
-                    .background(
-                        Brush.verticalGradient(
-                            listOf(Color(0xFF14151A), Color(0xFF0F1014))
-                        )
+        Column(
+            Modifier
+                .fillMaxWidth()
+                .background(
+                    Brush.verticalGradient(
+                        listOf(Color(0xFF14151A), Color(0xFF0F1014))
                     )
-                    .padding(bottom = 20.dp)
-                    .navigationBarsPadding()
-                    .imePadding()
-            ) {
+                )
+                .padding(bottom = 20.dp)
+        ) {
                 // 拖拽把手
                 Box(Modifier.fillMaxWidth().padding(top = 12.dp, bottom = 4.dp), contentAlignment = Alignment.Center) {
                     Box(
@@ -567,7 +549,6 @@ private fun FireInputSheet(
                             letterSpacing = 0.5.sp)
                     }
                 }
-            }
         }
     }
 }
