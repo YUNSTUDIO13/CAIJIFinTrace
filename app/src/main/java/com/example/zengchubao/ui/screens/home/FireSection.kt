@@ -43,7 +43,7 @@ private fun FireCardShell(modifier: Modifier = Modifier, content: @Composable Bo
     Box(
         modifier = modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(28.dp))
+            .clip(RoundedCornerShape(24.dp))
             .background(
                 Brush.linearGradient(
                     colors = listOf(Color(0xFF0D0D0F), Color(0xFF111218), Color(0xFF0F1014)),
@@ -259,11 +259,9 @@ private fun FireCardConfigured(target: Double, current: Double, onEdit: () -> Un
                     Spacer(Modifier.width(8.dp))
                     Box(Modifier.width(1.dp).height(10.dp).background(Color.White.copy(alpha = 0.12f)))
                     Spacer(Modifier.width(8.dp))
-                    Text("目标", fontSize = 8.sp, color = Color.White.copy(alpha = 0.35f), maxLines = 1)
-                    Spacer(Modifier.width(4.dp))
                     Text("¥${CN_LOCALE.format(target)}", fontSize = 10.sp, fontWeight = FontWeight.Bold,
-                        color = Color.White.copy(alpha = 0.75f), maxLines = 1,
-                        overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis)
+                        color = Color.White.copy(alpha = 0.75f), maxLines = 1, softWrap = false,
+                        overflow = androidx.compose.ui.text.style.TextOverflow.Clip)
                 }
                 Spacer(Modifier.width(8.dp))
                 // 右：¥current pct% ✏️（¥current 与 pct% 底部基线对齐；铅笔与 pct% 中线对齐）
@@ -388,7 +386,10 @@ private fun FireInputSheet(
 
     Dialog(
         onDismissRequest = onCancel,
-        properties = DialogProperties(usePlatformDefaultWidth = false)
+        properties = DialogProperties(
+            usePlatformDefaultWidth = false,
+            decorFitsSystemWindows = false
+        )
     ) {
         Box(Modifier.fillMaxSize()) {
             // 毛玻璃遮罩
