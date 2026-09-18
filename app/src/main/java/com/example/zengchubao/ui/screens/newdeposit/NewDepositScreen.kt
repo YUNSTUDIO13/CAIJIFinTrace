@@ -81,12 +81,16 @@ fun NewDepositScreen(
 
     fun doSave(deposit: Deposit) {
         scope.launch {
-            // 有日历权限则同步系统日历事件
+            // 有日历权限则同步系统日历事件，并 Toast 反馈结果
+            var toastMsg: String? = null
             val synced = if (CalendarSync.hasPermission(context)) {
-                withContext(Dispatchers.IO) { CalendarSync.syncDepositEvent(context, deposit) }
+                val result = withContext(Dispatchers.IO) { CalendarSync.syncDepositEvent(context, deposit) }
+                toastMsg = result.message
+                result.eventId
             } else null
             val final = if (synced != null) deposit.copy(calendarEventId = synced) else deposit
             withContext(Dispatchers.IO) { storage.saveDeposit(final) }
+            toastMsg?.let { android.widget.Toast.makeText(context, it, android.widget.Toast.LENGTH_LONG).show() }
             onSave()
         }
     }
