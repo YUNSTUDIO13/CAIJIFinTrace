@@ -87,6 +87,8 @@ fun HomeScreen(
     }
 
     val assetBalance: Double = remember(bankFiltered) { calculateAssetBalance(bankFiltered) }
+    // FIRE 目标：全局口径，不受银行筛选影响
+    val fireCurrent: Double = remember(holdingDeposits) { calculateAssetBalance(holdingDeposits) }
     val annualExpectedYield: Double = remember(deposits, selectedBanks) {
         val filtered = if (selectedBanks.isEmpty()) deposits
         else deposits.filter { it.bankName in selectedBanks }
@@ -155,7 +157,7 @@ fun HomeScreen(
             item {
                 FireSection(
                     fireGoal = fireGoal,
-                    fireCurrent = assetBalance,
+                    fireCurrent = fireCurrent,
                     onSaveGoal = onSaveFireGoal
                 )
             }

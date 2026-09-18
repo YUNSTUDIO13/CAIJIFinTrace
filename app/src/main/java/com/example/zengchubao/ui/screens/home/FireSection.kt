@@ -266,8 +266,8 @@ private fun FireCardConfigured(target: Double, current: Double, onEdit: () -> Un
                         style = TextStyle(platformStyle = PlatformTextStyle(includeFontPadding = false)))
                 }
                 Spacer(Modifier.width(8.dp))
-                // 右：¥current pct% ✏️（¥current 与 pct% 基线对齐；铅笔与 pct% 中线对齐）
-                Text("¥${CN_LOCALE.format(current)}", fontSize = 7.sp,
+                // 右：待完成金额(target-current, 下限0) pct% ✏️（与 pct% 基线对齐；铅笔与 pct% 中线对齐）
+                Text("¥${CN_LOCALE.format(maxOf(target - current, 0.0))}", fontSize = 7.sp,
                     color = Color.White.copy(alpha = 0.35f), maxLines = 1,
                     modifier = Modifier.alignByBaseline(),
                     style = TextStyle(platformStyle = PlatformTextStyle(includeFontPadding = false)))

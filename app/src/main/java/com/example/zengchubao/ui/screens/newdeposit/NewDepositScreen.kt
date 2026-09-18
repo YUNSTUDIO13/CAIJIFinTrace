@@ -21,6 +21,9 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import com.example.zengchubao.calendar.CalendarSync
 import com.example.zengchubao.model.*
 import com.example.zengchubao.storage.LocalFileManager
 import kotlinx.coroutines.Dispatchers
@@ -72,6 +75,39 @@ fun NewDepositScreen(
     var newBankName by remember { mutableStateOf("") }
     var showDatePicker by remember { mutableStateOf(false) }
 
+    // ── 日历权限与保存 ──
+    val context = LocalContext.current
+    var pendingSaveDeposit by remember { mutableStateOf<Deposit?>(null) }
+
+    fun doSave(deposit: Deposit) {
+        scope.launch {
+            // 有日历权限则同步系统日历事件
+            val synced = if (CalendarSync.hasPermission(context)) {
+                withContext(Dispatchers.IO) { CalendarSync.syncDepositEvent(context, deposit) }
+            } else null
+            val final = if (synced != null) deposit.copy(calendarEventId = synced) else deposit
+            withContext(Dispatchers.IO) { storage.saveDeposit(final) }
+            onSave()
+        }
+    }
+
+    val calendarPermissionLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestMultiplePermissions()
+    ) { grants ->
+        val deposit = pendingSaveDeposit
+        pendingSaveDeposit = null
+        if (deposit != null) doSave(deposit)
+    }
+
+    fun saveWithCalendar(deposit: Deposit) {
+        if (CalendarSync.hasPermission(context)) {
+            doSave(deposit)
+        } else {
+            pendingSaveDeposit = deposit
+            calendarPermissionLauncher.launch(CalendarSync.REQUIRED_PERMISSIONS)
+        }
+    }
+
     // 实际天数法→将选中存期换算成实际日历天数
     val effectiveTermDays = remember(startDate, selectedTermDays, selectedCalcMethod) {
         if (selectedCalcMethod == CalcMethod.ACTUAL_DAYS) {
@@ -98,29 +134,26 @@ fun NewDepositScreen(
                 actions = {
                     TextButton(
                         onClick = {
-                            scope.launch {
-                                val deposit = editDeposit?.copy(
-                                    bankId = selectedBankId, bankName = selectedBankName,
-                                    productName = productName.ifEmpty { selectedBankName + "定存" },
-                                    principal = principalVal, annualRate = rateVal,
-                                    startDate = startDate, endDate = endDate,
-                                    termDays = effectiveTermDays, termLabel = selectedTermLabel,
-                                    calcMethod = selectedCalcMethod, maturityAmount = estimatedTotal,
-                                    note = note, updatedAt = System.currentTimeMillis()
-                                ) ?: Deposit(
-                                    id = UUID.randomUUID().toString(),
-                                    bankId = selectedBankId, bankName = selectedBankName,
-                                    productName = productName.ifEmpty { selectedBankName + "定存" },
-                                    productType = ProductType.FIXED_DEPOSIT,
-                                    principal = principalVal, annualRate = rateVal,
-                                    startDate = startDate, endDate = endDate,
-                                    termDays = effectiveTermDays, termLabel = selectedTermLabel,
-                                    calcMethod = selectedCalcMethod, maturityAmount = estimatedTotal,
-                                    note = note
-                                )
-                                withContext(Dispatchers.IO) { storage.saveDeposit(deposit) }
-                                onSave()
-                            }
+                            val deposit = editDeposit?.copy(
+                                bankId = selectedBankId, bankName = selectedBankName,
+                                productName = productName.ifEmpty { selectedBankName + "定存" },
+                                principal = principalVal, annualRate = rateVal,
+                                startDate = startDate, endDate = endDate,
+                                termDays = effectiveTermDays, termLabel = selectedTermLabel,
+                                calcMethod = selectedCalcMethod, maturityAmount = estimatedTotal,
+                                note = note, updatedAt = System.currentTimeMillis()
+                            ) ?: Deposit(
+                                id = UUID.randomUUID().toString(),
+                                bankId = selectedBankId, bankName = selectedBankName,
+                                productName = productName.ifEmpty { selectedBankName + "定存" },
+                                productType = ProductType.FIXED_DEPOSIT,
+                                principal = principalVal, annualRate = rateVal,
+                                startDate = startDate, endDate = endDate,
+                                termDays = effectiveTermDays, termLabel = selectedTermLabel,
+                                calcMethod = selectedCalcMethod, maturityAmount = estimatedTotal,
+                                note = note
+                            )
+                            saveWithCalendar(deposit)
                         },
                         enabled = principalVal > 0 && rateVal > 0
                     ) { Text("保存", fontSize = 14.sp, fontWeight = FontWeight.Bold, color = Blue) }

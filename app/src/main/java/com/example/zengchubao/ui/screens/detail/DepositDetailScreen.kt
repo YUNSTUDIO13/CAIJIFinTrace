@@ -22,9 +22,11 @@ import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.nativeCanvas
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.zengchubao.calendar.CalendarSync
 import com.example.zengchubao.model.*
 import com.example.zengchubao.storage.LocalFileManager
 import com.example.zengchubao.ui.screens.home.heroGradient
@@ -67,6 +69,7 @@ fun DepositDetailScreen(
     } ?: run { onBack(); return }
 
     val scope = rememberCoroutineScope()
+    val context = LocalContext.current
     var showDeleteDialog by remember { mutableStateOf(false) }
     var showEarlyWithdrawalSheet by remember { mutableStateOf(false) }
     var showEditNote by remember { mutableStateOf(false) }
@@ -324,7 +327,10 @@ fun DepositDetailScreen(
                     onClick = {
                         showDeleteDialog = false
                         scope.launch {
-                            withContext(Dispatchers.IO) { storage.deleteDeposit(depositId) }
+                            withContext(Dispatchers.IO) {
+                                deposit.calendarEventId?.let { CalendarSync.deleteDepositEvent(context, it) }
+                                storage.deleteDeposit(depositId)
+                            }
                             onDeleted()
                         }
                     },
