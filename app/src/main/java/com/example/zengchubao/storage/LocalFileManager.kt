@@ -135,7 +135,7 @@ class LocalFileManager(private val context: Context) {
         var changed = false
         deposits.forEachIndexed { index, deposit ->
             if (deposit.status == DepositStatus.HOLDING || deposit.status == DepositStatus.MATURED) {
-                if (deposit.endDate < today) {
+                if (deposit.endDate <= today) {
                     deposits[index] = deposit.copy(
                         status = DepositStatus.ARCHIVED,
                         updatedAt = System.currentTimeMillis()
