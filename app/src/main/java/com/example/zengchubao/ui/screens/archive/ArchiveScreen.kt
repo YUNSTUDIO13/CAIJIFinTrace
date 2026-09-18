@@ -196,16 +196,14 @@ fun ArchiveScreen(
                                         horizontalArrangement = Arrangement.SpaceBetween,
                                         verticalAlignment = Alignment.CenterVertically
                                     ) {
-                                        Row(
-                                            modifier = Modifier.weight(1f),
-                                            verticalAlignment = Alignment.CenterVertically,
-                                            horizontalArrangement = Arrangement.spacedBy(6.dp)
-                                        ) {
+                                        // 左：产品名称在上，起止日期在下（间距2dp）
+                                        Column(modifier = Modifier.weight(1f)) {
                                             Text(dep.productName, fontSize = 12.sp, color = Color(0xFF334155),
-                                                fontWeight = FontWeight.W500, maxLines = 1, overflow = TextOverflow.Ellipsis,
-                                                modifier = Modifier.weight(1f, fill = false))
+                                                fontWeight = FontWeight.W500, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                                            Spacer(Modifier.height(2.dp))
                                             Text(periodText, fontSize = 10.sp, color = Color(0xFF94A3B8))
                                         }
+                                        // 右：金额+箭头，居于两行中线右对齐
                                         Row(
                                             verticalAlignment = Alignment.CenterVertically,
                                             horizontalArrangement = Arrangement.End
