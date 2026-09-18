@@ -14,6 +14,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.PlatformTextStyle
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -196,12 +198,14 @@ fun ArchiveScreen(
                                         horizontalArrangement = Arrangement.SpaceBetween,
                                         verticalAlignment = Alignment.CenterVertically
                                     ) {
-                                        // 左：产品名称在上，起止日期在下（间距2dp）
+                                        // 左：产品名称在上，起止日期在下（去字体padding后严格2dp）
                                         Column(modifier = Modifier.weight(1f)) {
                                             Text(dep.productName, fontSize = 12.sp, color = Color(0xFF334155),
-                                                fontWeight = FontWeight.W500, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                                                fontWeight = FontWeight.W500, maxLines = 1, overflow = TextOverflow.Ellipsis,
+                                                style = TextStyle(platformStyle = PlatformTextStyle(includeFontPadding = false)))
                                             Spacer(Modifier.height(2.dp))
-                                            Text(periodText, fontSize = 10.sp, color = Color(0xFF94A3B8))
+                                            Text(periodText, fontSize = 10.sp, color = Color(0xFF94A3B8),
+                                                style = TextStyle(platformStyle = PlatformTextStyle(includeFontPadding = false)))
                                         }
                                         // 右：金额+箭头，居于两行中线右对齐
                                         Row(
