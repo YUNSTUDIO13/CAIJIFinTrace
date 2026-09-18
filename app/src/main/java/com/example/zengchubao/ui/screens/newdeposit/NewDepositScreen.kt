@@ -81,17 +81,32 @@ fun NewDepositScreen(
 
     fun doSave(deposit: Deposit) {
         scope.launch {
-            // 有日历权限则同步系统日历事件，并 Toast 反馈结果
+            // 有日历权限则尝试直写系统日历；失败（如无可写账户）则兜底调起日历 App 预填界面
             var toastMsg: String? = null
+            var fallbackIntent: android.content.Intent? = null
             val synced = if (CalendarSync.hasPermission(context)) {
                 val result = withContext(Dispatchers.IO) { CalendarSync.syncDepositEvent(context, deposit) }
+                if (result.eventId == null) fallbackIntent = CalendarSync.buildInsertIntent(deposit)
                 toastMsg = result.message
                 result.eventId
-            } else null
+            } else {
+                // 未授权也兜底：Intent 方式不需要日历权限
+                fallbackIntent = CalendarSync.buildInsertIntent(deposit)
+                null
+            }
             val final = if (synced != null) deposit.copy(calendarEventId = synced) else deposit
             withContext(Dispatchers.IO) { storage.saveDeposit(final) }
-            toastMsg?.let { android.widget.Toast.makeText(context, it, android.widget.Toast.LENGTH_LONG).show() }
             onSave()
+            if (synced != null) {
+                toastMsg?.let { android.widget.Toast.makeText(context, it, android.widget.Toast.LENGTH_LONG).show() }
+            } else if (fallbackIntent != null) {
+                android.widget.Toast.makeText(context, "已为你打开日历，请点「保存」完成添加", android.widget.Toast.LENGTH_LONG).show()
+                try {
+                    context.startActivity(fallbackIntent)
+                } catch (e: Exception) {
+                    android.widget.Toast.makeText(context, "未找到可用的日历应用", android.widget.Toast.LENGTH_LONG).show()
+                }
+            }
         }
     }
 

@@ -48,16 +48,10 @@ object CalendarSync {
             ?: return SyncResult(null, "到期日期解析失败：${deposit.endDate}")
         val endMillis = startMillis + 30 * 60 * 1000L
 
-        val fmt = NumberFormat.getNumberInstance(Locale.CHINA).apply {
-            minimumFractionDigits = 2; maximumFractionDigits = 2
-        }
         val values = ContentValues().apply {
             put(CalendarContract.Events.CALENDAR_ID, calendar.first)
             put(CalendarContract.Events.TITLE, "${deposit.productName}到期")
-            put(
-                CalendarContract.Events.DESCRIPTION,
-                "银行：${deposit.bankName}\n本金：¥${fmt.format(deposit.principal)}\n到期本息：¥${fmt.format(deposit.maturityAmount)}"
-            )
+            put(CalendarContract.Events.DESCRIPTION, descriptionFor(deposit))
             put(CalendarContract.Events.DTSTART, startMillis)
             put(CalendarContract.Events.DTEND, endMillis)
             put(CalendarContract.Events.EVENT_TIMEZONE, TimeZone.getDefault().id)
@@ -103,7 +97,30 @@ object CalendarSync {
         }
     }
 
+    /**
+     * 兜底：无可写日历账户时，用 Intent 调起系统日历的"新建日程"界面（全预填，用户点保存即可）。
+     * ACTION_INSERT 不需要日历权限。
+     */
+    fun buildInsertIntent(deposit: Deposit): android.content.Intent? {
+        val startMillis = parseEndDateAt9AM(deposit.endDate) ?: return null
+        return android.content.Intent(android.content.Intent.ACTION_INSERT).apply {
+            data = CalendarContract.Events.CONTENT_URI
+            putExtra(CalendarContract.Events.TITLE, "${deposit.productName}到期")
+            putExtra(CalendarContract.Events.DESCRIPTION, descriptionFor(deposit))
+            putExtra(CalendarContract.EXTRA_EVENT_BEGIN_TIME, startMillis)
+            putExtra(CalendarContract.EXTRA_EVENT_END_TIME, startMillis + 30 * 60 * 1000L)
+        }
+    }
+
     // ── 内部 ──
+
+    /** 事件描述（直写与 Intent 兜底共用） */
+    private fun descriptionFor(deposit: Deposit): String {
+        val fmt = NumberFormat.getNumberInstance(Locale.CHINA).apply {
+            minimumFractionDigits = 2; maximumFractionDigits = 2
+        }
+        return "银行：${deposit.bankName}\n本金：¥${fmt.format(deposit.principal)}\n到期本息：¥${fmt.format(deposit.maturityAmount)}"
+    }
 
     /** 到期日 09:00 的本地时间毫秒 */
     private fun parseEndDateAt9AM(endDate: String): Long? {
