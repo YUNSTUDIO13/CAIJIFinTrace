@@ -108,8 +108,8 @@ fun ReportsScreen(
         if (holding.isEmpty()) "---" else "${"%.2f".format(weightedRate)}%"
     }
     val archivedYield = remember(deposits) {
-        deposits.filter { it.status != DepositStatus.HOLDING }
-            .sumOf { calculateMaturityInterest(it.principal, it.annualRate, it.termDays, it.calcMethod) }
+        deposits.filter { it.status == DepositStatus.ARCHIVED || it.status == DepositStatus.EARLY_WITHDRAWN }
+            .sumOf { it.maturityAmount - it.principal }
     }
 
     // 按银行分组
