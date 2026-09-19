@@ -93,10 +93,11 @@ fun ReportsScreen(
     val totalDeposited = remember(holding) { holding.sumOf { it.principal } }
     val annualExpected = remember(deposits) { calculateAnnualExpectedYield(deposits) }
     val weightedRate = remember(holding) { calculateWeightedRate(holding) }
-    val dailyRate = remember(holding) {
+    val dailyRate = remember(deposits) {
         val today = todayString()
-        val daily = holding
-            .filter { it.startDate < today } // 不算头：起存当天不计日收益
+        val daily = deposits
+            .filter { it.status != DepositStatus.EARLY_WITHDRAWN } // 提前支取后不再计息
+            .filter { it.startDate < today && today <= it.endDate } // 不算头算尾：与明细页同口径，不看状态
             .sumOf { it.principal * (it.annualRate / 100.0) / yearBasis(it.calcMethod).toDouble() }
         "%.2f".format(daily)
     }

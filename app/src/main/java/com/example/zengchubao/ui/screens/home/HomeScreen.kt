@@ -97,9 +97,12 @@ fun HomeScreen(
     val holdingTotalYield: Double = remember(bankFiltered) {
         bankFiltered.sumOf { calculateAccruedInterest(it.principal, it.annualRate, it.startDate, it.termDays, it.calcMethod) }
     }
-    val dailyYield: Double = remember(bankFiltered) {
+    val dailyYield: Double = remember(deposits, selectedBanks) {
         val today = todayString()
-        bankFiltered.filter { it.startDate < today } // 不算头：起存当天不计日收益
+        deposits
+            .filter { selectedBanks.isEmpty() || it.bankName in selectedBanks }
+            .filter { it.status != DepositStatus.EARLY_WITHDRAWN } // 提前支取后不再计息
+            .filter { it.startDate < today && today <= it.endDate } // 不算头算尾：与明细页同口径，不看状态
             .sumOf { it.principal * (it.annualRate / 100.0) / yearBasis(it.calcMethod).toDouble() }
     }
 
