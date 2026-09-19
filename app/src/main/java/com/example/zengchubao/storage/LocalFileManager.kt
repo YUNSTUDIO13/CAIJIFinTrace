@@ -114,13 +114,14 @@ class LocalFileManager(private val context: Context) {
         }
     }
 
-    /** 提前支取：状态改为 EARLY_WITHDRAWN，更新实际到期本息 */
-    suspend fun earlyWithdrawDeposit(id: String, actualTotalAmount: Double) = withContext(Dispatchers.IO) {
+    /** 提前支取：状态改为 EARLY_WITHDRAWN，记录支取日，更新实际到期本息 */
+    suspend fun earlyWithdrawDeposit(id: String, actualTotalAmount: Double, withdrawalDate: String) = withContext(Dispatchers.IO) {
         val deposits = getAllDeposits().toMutableList()
         val index = deposits.indexOfFirst { it.id == id }
         if (index >= 0) {
             deposits[index] = deposits[index].copy(
                 status = DepositStatus.EARLY_WITHDRAWN,
+                withdrawalDate = withdrawalDate,
                 maturityAmount = actualTotalAmount,
                 updatedAt = System.currentTimeMillis()
             )

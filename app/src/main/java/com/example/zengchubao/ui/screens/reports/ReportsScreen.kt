@@ -102,7 +102,7 @@ fun ReportsScreen(
         "%.2f".format(daily)
     }
     val accumulatedYield = remember(holding) {
-        holding.sumOf { calculateAccruedInterest(it.principal, it.annualRate, it.startDate, it.termDays, it.calcMethod) }
+        holding.sumOf { calculateAccruedInterest(it) }
     }
     val weightedRateText = remember(holding, weightedRate) {
         if (holding.isEmpty()) "---" else "${"%.2f".format(weightedRate)}%"

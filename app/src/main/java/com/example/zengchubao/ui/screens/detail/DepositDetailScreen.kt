@@ -354,11 +354,11 @@ fun DepositDetailScreen(
             EarlyWithdrawalSheet(
                 deposit = deposit,
                 onDismiss = { showEarlyWithdrawalSheet = false },
-                onConfirm = { actualTotalAmount ->
+                onConfirm = { actualTotalAmount, withdrawalDate ->
                     showEarlyWithdrawalSheet = false
                     scope.launch {
                         withContext(Dispatchers.IO) {
-                            storage.earlyWithdrawDeposit(deposit.id, actualTotalAmount)
+                            storage.earlyWithdrawDeposit(deposit.id, actualTotalAmount, withdrawalDate)
                         }
                         onDeleted()
                     }
@@ -481,7 +481,7 @@ private fun ActionButton(
 fun EarlyWithdrawalSheet(
     deposit: Deposit,
     onDismiss: () -> Unit,
-    onConfirm: (actualTotalAmount: Double) -> Unit
+    onConfirm: (actualTotalAmount: Double, withdrawalDate: String) -> Unit
 ) {
     var withdrawalDate by remember { mutableStateOf(todayString()) }
     var demandRate by remember { mutableStateOf("0.3") }
@@ -607,7 +607,7 @@ fun EarlyWithdrawalSheet(
                 ) { Text("取消", fontSize = 14.sp) }
 
                 Button(
-                    onClick = { onConfirm(result.totalAmount) },
+                    onClick = { onConfirm(result.totalAmount, withdrawalDate) },
                     modifier = Modifier.weight(1f).height(48.dp),
                     shape = RoundedCornerShape(16.dp),
                     colors = ButtonDefaults.buttonColors(containerColor = BrandBlue)

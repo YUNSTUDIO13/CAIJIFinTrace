@@ -55,30 +55,11 @@ fun EarningsBreakdownScreen(
     }
 
     fun metricValue(dep: Deposit): Double {
-        val basis = yearBasis(dep.calcMethod).toDouble()
         return when (mode) {
-            BreakdownMode.DAILY -> dep.principal * (dep.annualRate / 100.0) / basis
-            BreakdownMode.ANNUAL -> {
-                val today = todayString()
-                val yearStart = "${today.take(4)}-01-01"
-                val yearEnd = "${today.take(4)}-12-31"
-                val start = if (dep.startDate > yearStart) addDays(dep.startDate, 1) else yearStart
-                val end = if (dep.endDate < yearEnd) dep.endDate else yearEnd
-                if (start >= end) 0.0
-                else dep.principal * (dep.annualRate / 100.0) / basis * (if (dep.calcMethod == CalcMethod.ANNUAL_MATCH) daysBetweenBankingStyle(start, end) + 1 else daysBetween(start, end) + 1)
-            }
-            BreakdownMode.ACCUMULATED -> {
-                val today = todayString()
-                val dayCount = if (dep.calcMethod == CalcMethod.ANNUAL_MATCH) {
-                    minOf(daysBetweenBankingStyle(dep.startDate, today), dep.termDays)
-                } else {
-                    maxOf(0, minOf(daysBetween(dep.startDate, today), dep.termDays))
-                }
-                dep.principal * (dep.annualRate / 100.0) / basis * dayCount
-            }
-            BreakdownMode.MATURITY -> {
-                dep.principal * (dep.annualRate / 100.0) * (dep.termDays.toDouble() / basis)
-            }
+            BreakdownMode.DAILY -> dep.principal * (dep.annualRate / 100.0) / yearBasis(dep.calcMethod).toDouble()
+            BreakdownMode.ANNUAL -> calculateAnnualExpectedYieldForDeposit(dep)
+            BreakdownMode.ACCUMULATED -> calculateAccruedInterest(dep)
+            BreakdownMode.MATURITY -> calculateMaturityInterest(dep)
         }
     }
 

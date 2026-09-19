@@ -95,7 +95,7 @@ fun HomeScreen(
         calculateAnnualExpectedYield(filtered)
     }
     val holdingTotalYield: Double = remember(bankFiltered) {
-        bankFiltered.sumOf { calculateAccruedInterest(it.principal, it.annualRate, it.startDate, it.termDays, it.calcMethod) }
+        bankFiltered.sumOf { calculateAccruedInterest(it) }
     }
     val dailyYield: Double = remember(deposits, selectedBanks) {
         val today = todayString()

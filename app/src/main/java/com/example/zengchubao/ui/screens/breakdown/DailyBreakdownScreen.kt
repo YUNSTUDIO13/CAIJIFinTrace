@@ -41,8 +41,9 @@ data class MonthlyIncome(val year: Int, val month: Int, val byDate: Map<String, 
 }
 
 fun dailyIncomeForDepositOnDate(dep: Deposit, date: String, today: String): Double {
-    // 口径：不算头、算尾 —— 起存当天不计，(startDate, endDate] 逐日计，整段 = termDays 天 = 到期利息
-    if (date <= dep.startDate || date > dep.endDate) return 0.0
+    // 口径：不算头、算尾 —— 起存当天不计，(startDate, 实际计息截止日] 逐日计
+    // 提前支取后实际计息截止日 = 支取日，消除"支取后一直计到原到期日"的尾巴
+    if (date <= dep.startDate || date > effectiveEndDate(dep)) return 0.0
     if (date > today) return 0.0
     return dep.principal * (dep.annualRate / 100.0) / yearBasis(dep.calcMethod).toDouble()
 }

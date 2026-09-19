@@ -135,7 +135,25 @@ fun calculateMaturityInterest(principal: Double, annualRate: Double, termDays: I
 // ── 已累计收益计算 ──
 
 /**
- * 计算截止今天已产生的收益
+ * 实际计息截止日：提前支取后取支取日，否则取原到期日
+ * 用于消除"提前支取后 endDate 不变导致一直计到原到期日"的尾巴
+ */
+fun effectiveEndDate(dep: Deposit): String {
+    return if (dep.status == DepositStatus.EARLY_WITHDRAWN && dep.withdrawalDate.isNotBlank()) dep.withdrawalDate
+    else dep.endDate
+}
+
+/**
+ * 计算截止今天已产生的收益（按存单）
+ * 提前支取：按实际支取本息差额（本金×活期利率×实际天数）计，不再按原利率整期滚
+ */
+fun calculateAccruedInterest(dep: Deposit): Double {
+    if (dep.status == DepositStatus.EARLY_WITHDRAWN) return maxOf(0.0, dep.maturityAmount - dep.principal)
+    return calculateAccruedInterest(dep.principal, dep.annualRate, dep.startDate, dep.termDays, dep.calcMethod)
+}
+
+/**
+ * 计算截止今天已产生的收益（基础版，参数展开）
  * 持有天数 = min(今天 - 起存日, 存期天数)
  */
 fun calculateAccruedInterest(
@@ -236,25 +254,43 @@ fun daysUntilMaturity(endDate: String): Int {
  * 例：今年7/10新存 → 7/10~12/31 = 174天
  */
 fun calculateAnnualExpectedYield(deposits: List<Deposit>): Double {
+    return deposits.sumOf { calculateAnnualExpectedYieldForDeposit(it) }
+}
+
+/**
+ * 今年预估收益（按存单）
+ * 提前支取：截断到支取日，且仅在"支取当年"计入其实际已得利息（本金×活期利率×实际天数），
+ * 避免按原利率把整段预估到原到期日。跨年后支取的不计入今年。
+ */
+fun calculateAnnualExpectedYieldForDeposit(dep: Deposit): Double {
     val today = todayString()
     val yearStart = "${today.take(4)}-01-01"
     val yearEnd = "${today.take(4)}-12-31"
-    return deposits
-        .sumOf { dep ->
-            val start = if (dep.startDate > yearStart) addDays(dep.startDate, 1) else yearStart
-            val end = if (dep.endDate < yearEnd) dep.endDate else yearEnd
-            if (start >= end) return@sumOf 0.0
-            val basis = yearBasis(dep.calcMethod).toDouble()
-            val days = (if (dep.calcMethod == CalcMethod.ANNUAL_MATCH) daysBetweenBankingStyle(start, end) else daysBetween(start, end)) + 1
-            dep.principal * (dep.annualRate / 100.0) / yearBasis(dep.calcMethod).toDouble() * days
-        }
+    if (dep.status == DepositStatus.EARLY_WITHDRAWN) {
+        val wd = dep.withdrawalDate
+        return if (wd.isNotBlank() && wd.take(4) == today.take(4)) maxOf(0.0, dep.maturityAmount - dep.principal) else 0.0
+    }
+    val start = if (dep.startDate > yearStart) addDays(dep.startDate, 1) else yearStart
+    val end = if (effectiveEndDate(dep) < yearEnd) effectiveEndDate(dep) else yearEnd
+    if (start >= end) return 0.0
+    val basis = yearBasis(dep.calcMethod).toDouble()
+    val days = (if (dep.calcMethod == CalcMethod.ANNUAL_MATCH) daysBetweenBankingStyle(start, end) else daysBetween(start, end)) + 1
+    return dep.principal * (dep.annualRate / 100.0) / basis * days
 }
 
 // ── 到期总收益 ──
 
 fun calculateTotalMaturityYield(deposits: List<Deposit>): Double {
-    return deposits
-        .sumOf { calculateMaturityInterest(it.principal, it.annualRate, it.termDays, it.calcMethod) }
+    return deposits.sumOf { calculateMaturityInterest(it) }
+}
+
+/**
+ * 到期总收益（按存单）
+ * 提前支取：按实际支取本息差额计（已按活期利率结算），不再按原利率整期滚
+ */
+fun calculateMaturityInterest(dep: Deposit): Double {
+    if (dep.status == DepositStatus.EARLY_WITHDRAWN) return maxOf(0.0, dep.maturityAmount - dep.principal)
+    return calculateMaturityInterest(dep.principal, dep.annualRate, dep.termDays, dep.calcMethod)
 }
 
 // ── 加权平均年化利率（时间加权） ──

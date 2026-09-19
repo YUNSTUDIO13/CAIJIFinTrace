@@ -102,6 +102,7 @@ data class Deposit(
     val calcMethod: CalcMethod = CalcMethod.ACTUAL_DAYS,
     val maturityAmount: Double = 0.0, // 到期本息
     val status: DepositStatus = DepositStatus.HOLDING,
+    val withdrawalDate: String = "", // 提前支取日（YYYY-MM-DD），仅 EARLY_WITHDRAWN 有值
     val note: String = "",          // 备注
     val calendarEventId: Long? = null, // 系统日历事件ID（到期提醒）
     val createdAt: Long = System.currentTimeMillis(),
