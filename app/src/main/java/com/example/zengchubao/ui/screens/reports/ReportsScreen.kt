@@ -96,7 +96,7 @@ fun ReportsScreen(
     val dailyRate = remember(holding) {
         val today = todayString()
         val daily = holding
-            .filter { it.startDate <= today }
+            .filter { it.startDate < today } // 不算头：起存当天不计日收益
             .sumOf { it.principal * (it.annualRate / 100.0) / yearBasis(it.calcMethod).toDouble() }
         "%.2f".format(daily)
     }

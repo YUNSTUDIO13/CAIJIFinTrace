@@ -99,7 +99,7 @@ fun HomeScreen(
     }
     val dailyYield: Double = remember(bankFiltered) {
         val today = todayString()
-        bankFiltered.filter { it.startDate <= today }
+        bankFiltered.filter { it.startDate < today } // 不算头：起存当天不计日收益
             .sumOf { it.principal * (it.annualRate / 100.0) / yearBasis(it.calcMethod).toDouble() }
     }
 
